@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* new color palette variables */
+  --background: #FCFCFB; /* Parchment */
+  --foreground: #334155; /* Slate Gray used for body text/icons */
+  --primary: #334155;
+  --secondary: #10B981; /* Sage Emerald */
+  --accent: #F59E0B; /* Amber Gold */
 }
 
 @theme inline {
@@ -12,12 +16,14 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+.bg-primary { background-color: var(--primary) !important; }
+.text-primary { color: var(--primary) !important; }
+.bg-secondary { background-color: var(--secondary) !important; }
+.text-secondary { color: var(--secondary) !important; }
+.bg-background { background-color: var(--background) !important; }
+.text-background { color: var(--background) !important; }
+.bg-accent { background-color: var(--accent) !important; }
+.text-accent { color: var(--accent) !important; }
 
 body {
   background: var(--background);

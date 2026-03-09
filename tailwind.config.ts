@@ -7,7 +7,16 @@ const config: Config = {
     "./sections/**/*.{js,ts,jsx,tsx}",
     "./pages/**/*.{js,ts,jsx,tsx}"
   ],
-  theme: {},
+  theme: {
+    extend: {
+      colors: {
+        primary: "var(--primary)",
+        secondary: "var(--secondary)",
+        background: "var(--background)",
+        accent: "var(--accent)",
+      },
+    },
+  },
   plugins: [],
 };
 
