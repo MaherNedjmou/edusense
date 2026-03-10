@@ -100,7 +100,7 @@ const DashboardSidebar = () => {
         <Link
           href="/login"
           onClick={closeSidebar}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-linear-to-r from-red-400 to-red-500/90 text-white font-semibold rounded-3xl hover:from-red-500/90 hover:to-red-500 transition shadow-md hover:shadow-lg"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-linear-to-r from-red-400 to-red-500/90 text-white font-semibold rounded-lg hover:from-red-500/90 hover:to-red-500 transition shadow-md hover:shadow-lg"
         >
           <LogOut className="w-5 h-5" />
           <span>Logout</span>
