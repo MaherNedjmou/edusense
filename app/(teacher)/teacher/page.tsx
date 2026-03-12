@@ -4,6 +4,7 @@ import { Upload, Users, School, FileText, Sparkles, UserPlus } from "lucide-reac
 import SubmissionsChart from "@/components/Charts/SubmissionsChart";
 import PerformanceDistributionChart from "@/components/Charts/PerformanceChart";
 import StrengthWeaknessChart from "@/components/Charts/StrengthWeaknessChart";
+import Button from "@/components/UI/Button";
 
 export default function TeacherDashboard() {
   return (
@@ -16,15 +17,15 @@ export default function TeacherDashboard() {
         </div>
 
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 bg-background border border-primary/20 text-primary px-4 py-2 rounded-xl hover:bg-secondary/10 transition">
+          <Button variant="outline">
             <UserPlus size={18} />
             Create Class
-          </button>
+          </Button>
 
-          <button className="flex items-center gap-2 bg-secondary text-white px-5 py-2 rounded-xl shadow hover:opacity-90 transition">
+          <Button variant="primary">
             <Upload size={18} />
             Analyze Papers
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -38,24 +39,24 @@ export default function TeacherDashboard() {
 
       {/* Charts Section */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-background rounded-2xl shadow-sm p-6 border border-primary/10">
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
           <h2 className="font-semibold mb-4 text-primary">Submissions Over Time</h2>
           <SubmissionsChart />
         </div>
 
-        <div className="bg-background rounded-2xl shadow-sm p-6 border border-primary/10">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
           <h2 className="font-semibold mb-4 text-primary">Performance Distribution</h2>
           <PerformanceDistributionChart />
         </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-background rounded-2xl shadow-sm p-6 border border-primary/10">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
           <h2 className="font-semibold mb-4 text-primary">Strengths vs Weaknesses</h2>
           <StrengthWeaknessChart />
         </div>
 
-        <div className="bg-background rounded-2xl shadow-sm p-6 border border-primary/10">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
           <h2 className="font-semibold mb-6 text-primary">Recent Analyses</h2>
 
           <div className="space-y-4">
@@ -69,9 +70,9 @@ export default function TeacherDashboard() {
   );
 }
 
-function StatCard({ icon, label, value } : { icon: React.ReactNode, label: string, value: string }) {
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-background p-6 rounded-2xl shadow-sm flex items-center justify-between border border-primary/10">
+    <div className="bg-white p-6 rounded-2xl shadow-sm flex items-center justify-between border border-primary/10">
       <div>
         <p className="text-sm text-primary/70">{label}</p>
         <p className="text-2xl font-semibold mt-1 text-primary">{value}</p>
@@ -81,14 +82,28 @@ function StatCard({ icon, label, value } : { icon: React.ReactNode, label: strin
   );
 }
 
-function ActivityRow({ student, exam, status } : { student: string, exam: string, status: string }) {
+function ActivityRow({ student, exam, status }: {
+  student: string;
+  exam: string;
+  status: string;
+}) {
+  const isProcessing = status === "Processing";
   return (
-    <div className="flex items-center justify-between border-b pb-3">
-      <div>
-        <p className="font-medium text-primary">{student}</p>
-        <p className="text-sm text-primary/70">{exam}</p>
+    <div className="flex items-center justify-between py-3 border-b border-primary/8 last:border-0">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+          {student.split(" ").map((n) => n[0]).join("")}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-primary">{student}</p>
+          <p className="text-xs text-primary/50">{exam}</p>
+        </div>
       </div>
-      <span className="text-sm px-3 py-1 rounded-full bg-secondary/20 text-secondary">{status}</span>
+      <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
+        isProcessing ? "bg-accent/15 text-accent" : "bg-secondary/15 text-secondary"
+      }`}>
+        {status}
+      </span>
     </div>
   );
 }

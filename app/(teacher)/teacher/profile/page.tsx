@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { User, Mail, School, Lock, Pencil, Camera, CheckCircle, Shield, Linkedin, Star } from "lucide-react";
+import { User, Mail, School, Lock, Pencil, Camera, CheckCircle, Star } from "lucide-react";
+import Button from "@/components/UI/Button";
 
 export default function ProfilePage() {
   const [editMode, setEditMode] = useState(false);
@@ -66,13 +67,10 @@ export default function ProfilePage() {
 
               {/* Action buttons */}
               <div className="flex items-center gap-2 pb-1">
-                <button
-                  onClick={() => setEditMode(!editMode)}
-                  className="flex items-center gap-2 text-xs font-semibold border border-primary/20 px-4 py-2 rounded-full hover:bg-black hover:text-gray-200 hover:cursor-pointer transition-colors"
-                >
-                  <Pencil size={12} />
+                <Button variant="outline" onClick={() => setEditMode(!editMode)} className="text-xs">
+                  <Pencil size={14} />
                   {editMode ? "Cancel" : "Edit"}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -111,12 +109,9 @@ export default function ProfilePage() {
             {/* Save bar */}
             {editMode && (
               <div className="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-primary/10">
-                <button
-                  onClick={handleSave}
-                  className="bg-secondary text-white text-sm font-semibold px-6 py-2 rounded-lg hover:opacity-90 transition-opacity shadow-sm"
-                >
+                <Button onClick={handleSave}>
                   Save Changes
-                </button>
+                </Button>
               </div>
             )}
 

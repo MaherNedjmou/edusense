@@ -20,9 +20,9 @@ const DashboardSidebar = () => {
   const navLinks = [
     { href: "/teacher", label: "Home", icon: Home },
     { href: "/teacher/analysis", label: "Analyze Papers", icon: NotepadTextDashed },
-    { href: "/teacher/classes", label: "My Classes", icon: Package },
+    { href: "/teacher/classes", label: "Classes", icon: Package },
     { href: "/teacher/students", label: "Students", icon: Users },
-    { href: "/teacher/profile", label: "My Profile", icon: User },
+    { href: "/teacher/profile", label: "Profile", icon: User },
   ];
 
   return (
