@@ -202,13 +202,12 @@ export default function StreamTab({ cls }: StreamTabProps) {
                   </div>
 
                   <div className="flex items-center gap-3 pt-1 border-t border-primary/8">
-                    <button
+                    <Button
                       disabled={!sec.modelSolutionName}
-                      onClick={() => alert(`Running AI analysis for: ${sec.title}`)}
-                      className={`flex items-center gap-2 bg-secondary text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity shadow-md shadow-secondary/30 ${!sec.modelSolutionName ? "opacity-40 cursor-not-allowed" : ""}`}
+                      className={`flex items-center gap-2 bg-secondary text-xs font-bold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-md shadow-secondary/30 ${!sec.modelSolutionName ? "opacity-40 cursor-not-allowed" : ""}`}
                     >
                       <Brain size={15} /> Analyze Section
-                    </button>
+                    </Button>
                     <div className="flex items-center gap-2 border border-accent/30 bg-accent/5 rounded-xl px-3 py-2">
                       <Crown size={13} className="text-accent" />
                       <span className="text-xs font-semibold text-primary/60">

@@ -1,5 +1,12 @@
 import "@/app/globals.css";
+import { Sono } from "next/font/google";
 import TeacherSidebar from "@/components/Sidebar/TeacherSidebar";
+
+const sono = Sono({
+  variable: "--font-sono",
+  subsets: ["latin"],
+});
+
 
 export default function DashboardLayout({
   children,
@@ -8,8 +15,8 @@ export default function DashboardLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased bg-background text-primary">
-        <div className="flex min-h-screen">
+      <body className={`${sono.variable} antialiased bg-background text-primary`}>
+        <div className="flex min-h-screen ">
           {/* Sidebar */}
           <TeacherSidebar />
           {/* Main Content */}

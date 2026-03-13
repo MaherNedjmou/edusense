@@ -8,11 +8,11 @@ import { CLASSES_DATA } from "@/data/classesData";
 import StreamTab from "@/components/Sections/StreamTab";
 import PeopleTab from "@/components/Sections/PeopleTab";
 
-type Tab = "stream" | "people";
+type Tab = "stream" | "students";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "stream", label: "Stream" },
-  { key: "people", label: "People" },
+  { key: "students", label: "students" },
 ];
 
 export default function ClassDetailPage() {
@@ -90,7 +90,7 @@ export default function ClassDetailPage() {
       {/* Tab content */}
       <div className="max-w-6xl mx-auto px-6 py-6">
         {activeTab === "stream" && <StreamTab cls={cls} />}
-        {activeTab === "people" && <PeopleTab cls={cls} />}
+        {activeTab === "students" && <PeopleTab cls={cls} />}
       </div>
 
     </div>

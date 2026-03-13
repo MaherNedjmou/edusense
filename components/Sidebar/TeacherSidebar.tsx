@@ -21,7 +21,6 @@ const DashboardSidebar = () => {
     { href: "/teacher", label: "Home", icon: Home },
     { href: "/teacher/analysis", label: "Analyze Papers", icon: NotepadTextDashed },
     { href: "/teacher/classes", label: "Classes", icon: Package },
-    { href: "/teacher/students", label: "Students", icon: Users },
     { href: "/teacher/profile", label: "Profile", icon: User },
   ];
 
@@ -31,14 +30,17 @@ const DashboardSidebar = () => {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-background shadow-md px-4 flex items-center justify-between">
         <button
           onClick={toggleSidebar}
-          className="p-2 text-primary hover:bg-secondary/20 rounded transition"
+          className="p-2 text-primary hover:bg-secondary/20 hover:cursor-pointer rounded transition"
           aria-label="Toggle Menu"
         >
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
-        <span className="font-semibold text-primary">Teacher Dashboard</span>
-        {/* optional space to balance flex */}
-        <div className="w-6" />
+        
+        {/* Username & avatar */}
+        <Link href="/teacher/profile" className="flex items-center gap-3">
+          <span className="text-sm font-medium text-primary">John Doe</span>
+          <div className="w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center text-primary font-bold">JD</div>
+        </Link>
       </div>
 
       {/* Overlay for mobile */}
@@ -52,18 +54,21 @@ const DashboardSidebar = () => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-40
+          fixed left-0 z-40
           w-64 bg-background
-          h-screen shadow-2xl flex flex-col p-6
+          /* on small screens push below top bar and shrink height */
+          top-16 bottom-0 lg:top-0 lg:h-screen h-[calc(100vh-4rem)]
+          shadow-2xl flex flex-col p-6
           transform transition-transform duration-200 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
       >
 
-        {/* Logo */}
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-xl font-bold text-primary">Teacher Dashboard</span>
-        </div>
+        {/* Username & avatar */}
+        <Link href="/teacher/profile" className="hidden lg:flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 rounded-full bg-gray-500/20 flex items-center justify-center text-primary font-bold">JD</div>
+          <span className="font-medium text-primary">John Doe</span>
+        </Link>
 
         {/* Navigation Links */}
         <nav className="flex flex-col gap-2">
