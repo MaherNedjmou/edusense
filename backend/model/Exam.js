@@ -7,6 +7,12 @@ const examSchema = new mongoose.Schema({
         required: true
     },
 
+    description: {
+        type: String,
+        required: true
+    },
+
+
     class: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Class",
@@ -14,6 +20,20 @@ const examSchema = new mongoose.Schema({
     },
 
     totalMarks: Number,
+
+    // List of exam pages (images)
+    examImages: [
+        {
+            type: String
+        }
+    ],
+
+    // List of solution pages (images)
+    solutionImages: [
+        {
+            type: String
+        }
+    ],
 
     createdAt: {
         type: Date,

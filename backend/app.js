@@ -26,6 +26,7 @@ const subscribeRoutes = require("./router/SubscribeRoute");
 const studentClassRoutes = require("./router/Student_ClassRoute");
 const studentClassAnswerRoutes = require("./router/Student_Class_AnswerRoute");
 const feedbackRoutes = require("./router/FeedbackRoute");
+const examRoutes = require("./router/examRouter");
 
 // ########################### JUST FOR TESTING ###########################
 app.use("/cloudinary", cloudinaryController);
@@ -47,6 +48,7 @@ app.use("/subscribe-plans", subscribeRoutes);
 app.use("/student-classes", studentClassRoutes);
 app.use("/student-class-answers", studentClassAnswerRoutes);
 app.use("/feedbacks", feedbackRoutes);
+app.use("/exams", examRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

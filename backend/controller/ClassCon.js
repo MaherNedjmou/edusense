@@ -1,11 +1,22 @@
 const Class = require("../model/Class");
-
+const Teacher = require("../model/Teacher");
 
 // CREATE CLASS
 const createClass = async (req, res) => {
   try {
+    // Find the teacher profile for this user
+    let teacher = await Teacher.findOne({ user: req.user._id });
+    
+    // If no teacher profile but user is teacher, create one
+    if (!teacher && req.user.role === "teacher") {
+      teacher = await Teacher.create({ user: req.user._id });
+    }
 
-    const newClass = await Class.create(req.body);
+    if (!teacher) {
+      return res.status(404).json({ success: false, message: "Teacher profile not found" });
+    }
+
+    const newClass = await Class.create({ ...req.body, teacher: teacher._id });
 
     res.status(201).json({
       success: true,
@@ -13,12 +24,30 @@ const createClass = async (req, res) => {
     });
 
   } catch (error) {
-
     res.status(400).json({
       success: false,
       message: error.message
     });
+  }
+};
 
+// GET MY CLASSES (Teacher's own classes)
+const getClassesByTeacher = async (req, res) => {
+  try {
+    const teacher = await Teacher.findOne({ user: req.user._id });
+    if (!teacher) {
+      return res.status(404).json({ success: false, message: "Teacher profile not found" });
+    }
+
+    const classes = await Class.find({ teacher: teacher._id }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: classes.length,
+      data: classes
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -146,6 +175,7 @@ const deleteClass = async (req, res) => {
 module.exports = {
   createClass,
   getClasses,
+  getClassesByTeacher,
   getClassById,
   updateClass,
   deleteClass

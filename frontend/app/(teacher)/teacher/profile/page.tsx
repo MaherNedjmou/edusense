@@ -3,20 +3,26 @@
 import { useState, useRef } from "react";
 import { User, Mail, School, Lock, Pencil, Camera, CheckCircle, Star } from "lucide-react";
 import Button from "@/components/UI/Button";
+import { getUser } from "@/lib/auth";
+import { useStore } from "@/store/useStore";
 
 export default function ProfilePage() {
+  const user = getUser();
+  const setData = useStore(state => state.setData);
+  const getData = useStore(state => state.getData);
+
   const [editMode, setEditMode] = useState(false);
-  const [firstName, setFirstName] = useState("John");
-  const [lastName, setLastName] = useState("Doe");
-  const [email, setEmail] = useState("john@school.edu");
-  const [school, setSchool] = useState("Green Valley High School");
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [school, setSchool] = useState(user?.school || "");
   const [saved, setSaved] = useState(false);
 
   const subscription = "Free";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAvatarClick = () => fileInputRef.current?.click();
-  const handleAvatarUpload = (e : React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     console.log("Avatar uploaded:", e.target.files[0]);
   };
@@ -33,7 +39,7 @@ export default function ProfilePage() {
       <div className="mb-8">
         <h1 className="text-3xl font-semibold">My Profile</h1>
       </div>
-      
+
       <div className="max-w-3xl mx-auto">
 
         {/* Card */}
@@ -102,7 +108,7 @@ export default function ProfilePage() {
                 <InputField label="School / Institution" icon={<School size={14} />} value={school} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSchool(e.target.value)} disabled={!editMode} />
               </div>
               <div className="md:col-span-2">
-                <InputField label="Password" icon={<Lock size={14} />} value="**************" onChange={() => {}} disabled={!editMode} type="password" />
+                <InputField label="Password" icon={<Lock size={14} />} value="**************" onChange={() => { }} disabled={!editMode} type="password" />
               </div>
             </div>
 
@@ -130,17 +136,16 @@ export default function ProfilePage() {
   );
 }
 
-function InputField({ label, icon, value, onChange, disabled, type = "text" } : { label: string, icon: React.ReactNode, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, disabled?: boolean, type?: string }) {
+function InputField({ label, icon, value, onChange, disabled, type = "text" }: { label: string, icon: React.ReactNode, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, disabled?: boolean, type?: string }) {
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-semibold text-primary/40 uppercase tracking-widest">
         {label}
       </label>
-      <div className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 border transition-all ${
-        disabled
+      <div className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 border transition-all ${disabled
           ? "bg-primary/5 border-primary/10"
           : "bg-white border-secondary/40 shadow-sm ring-2 ring-secondary/10"
-      }`}>
+        }`}>
         <span className={disabled ? "text-primary/30" : "text-secondary"}>
           {icon}
         </span>

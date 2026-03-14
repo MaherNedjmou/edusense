@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   createClass,
   getClasses,
+  getClassesByTeacher,
   getClassById,
   updateClass,
   deleteClass
@@ -12,6 +13,8 @@ const {
 router.post("/", createClass);
 
 router.get("/", getClasses);
+
+router.get("/my", getClassesByTeacher);
 
 router.get("/:id", getClassById);
 

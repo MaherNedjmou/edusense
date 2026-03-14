@@ -5,8 +5,11 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ["admin", "teacher", "student"], required: true },
+  isRealUser: { type: Boolean, default: true },
   firstName: String,
   lastName: String,
+  avatar: String,
+  school: String,
   createdAt: { type: Date, default: Date.now }
 });
 

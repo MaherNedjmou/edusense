@@ -1,22 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
-import { BANNER_COLORS, CLASSES_DATA } from "@/data/classesData";
+import { X, Loader2 } from "lucide-react";
+import { BANNER_COLORS } from "@/data/classesData";
 import Button from "@/components/UI/Button";
+import api from "@/lib/api";
 
 interface FormCreateClassProps {
   onClose: () => void;
-  onClassCreated: (newClass: {
-    id: string;
-    name: string;
-    subject: string;
-    description: string;
-    code: string;
-    color: string;
-    studentCount: number;
-    sectionCount: number;
-  }) => void;
+  onClassCreated: (newClass: any) => void;
 }
 
 export default function FormCreateClass({ onClose, onClassCreated }: FormCreateClassProps) {
@@ -24,29 +16,35 @@ export default function FormCreateClass({ onClose, onClassCreated }: FormCreateC
   const [classSubject, setClassSubject] = useState("");
   const [classDesc, setClassDesc] = useState("");
   const [colorIdx, setColorIdx] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
-
-  const generateId = (name: string) =>
-    name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!className.trim()) return;
+    setIsLoading(true);
+    setError("");
 
-    const newId = generateId(className);
-    const newClassData = {
-      name: className,
-      subject: classSubject || "General",
-      description: classDesc,
-      code: generateCode(),
-      color: BANNER_COLORS[colorIdx],
-      studentCount: 0,
-    };
+    try {
+      const payload = {
+        name: className,
+        subject: classSubject || "General",
+        description: classDesc,
+        color: BANNER_COLORS[colorIdx]
+      };
 
-    CLASSES_DATA[newId] = newClassData;
+      console.log(payload); 
 
-    onClassCreated({ id: newId, ...newClassData, sectionCount: 0 });
-    onClose();
+      const res = await api.post<any>("/classes", payload);
+      
+      if (res.success) {
+        onClassCreated({ ...res.data, studentCount: 0, sectionCount: 0 });
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to create class.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -56,7 +54,7 @@ export default function FormCreateClass({ onClose, onClassCreated }: FormCreateC
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-primary">Create New Class</h2>
-          <button onClick={onClose} className="text-primary/60 rounded-full hover:bg-gray-500/20 hover:cursor-pointer p-1 transition-colors">
+          <button onClick={onClose} disabled={isLoading} className="text-primary/60 rounded-full hover:bg-gray-500/20 hover:cursor-pointer p-1 transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -68,6 +66,7 @@ export default function FormCreateClass({ onClose, onClassCreated }: FormCreateC
             {BANNER_COLORS.map((c, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => setColorIdx(i)}
                 className={`w-7 h-7 rounded-full bg-linear-to-br ${c} transition-transform ${
                   colorIdx === i ? "scale-125 ring-2 ring-offset-2 ring-secondary" : ""
@@ -117,21 +116,30 @@ export default function FormCreateClass({ onClose, onClassCreated }: FormCreateC
           </div>
         </div>
 
+        {error && (
+          <div className="text-red-500 text-xs font-medium px-1">
+            {error}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-3">
           <Button
             onClick={onClose}
             className="flex-1"
             variant="outline"
+            disabled={isLoading}
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
-            className="flex-1"
+            className="flex-1 flex items-center justify-center gap-2"
             variant="primary"
+            disabled={isLoading || !className.trim()}
           >
-            Create Class
+            {isLoading && <Loader2 size={16} className="animate-spin" />}
+            <span>Create Class</span>
           </Button>
         </div>
 

@@ -1,5 +1,7 @@
 const User = require("../model/User");
 const Otp = require("../model/Otp");
+const Teacher = require("../model/Teacher");
+const Student = require("../model/Student");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
@@ -100,14 +102,33 @@ const signin = async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ message: "Invalid email or password" });
 
+
+    let roleId = null;
+
+    if (user.role === "teacher") {
+      const teacher = await Teacher.findOne({ user: user._id });
+      if (!teacher)
+        return res.status(404).json({ message: "Teacher profile not found" });
+      roleId = teacher._id;
+    } else if (user.role === "student") {
+      const student = await Student.findOne({ user: user._id });
+      if (!student)
+        return res.status(404).json({ message: "Student profile not found" });
+      roleId = student._id;
+    } else if (user.role === "admin") {
+      roleId = user._id; // admin might not have separate schema
+    }
     res.json({
       success: true,
       token: generateToken(user),
       user,
+      roleId,
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 };
 
 module.exports = { requestSignupOtp, confirmSignupOtp, signin };
+  

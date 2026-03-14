@@ -16,7 +16,6 @@ const studentClassAnswerSchema = new mongoose.Schema({
 
     answers: [
         {
-            questionId: String,
             answer: String
         }
     ],

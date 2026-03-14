@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const {
+  getDashboardStats,
   createTeacher,
   getTeachers,
   getTeacherById,
@@ -9,6 +10,7 @@ const {
   deleteTeacher
 } = require("../controller/TeacherCon");
 
+router.get("/stats", getDashboardStats);
 router.post("/", createTeacher);
 router.get("/", getTeachers);
 router.get("/:id", getTeacherById);

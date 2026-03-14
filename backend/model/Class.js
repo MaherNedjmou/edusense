@@ -8,6 +8,8 @@ const classSchema = new mongoose.Schema({
     },
 
     description: String,
+    color: String,
+    subject: String,
 
     teacher: {
         type: mongoose.Schema.Types.ObjectId,

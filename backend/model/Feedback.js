@@ -7,8 +7,10 @@ const feedbackSchema = new mongoose.Schema({
         ref: "StudentClassAnswer",
         required: true
     },
-
-    comment: String,
+    keyinsights: String,
+    weaknesses: String,
+    strengths: String,
+    recommendation: String,
 
     rating: Number,
 

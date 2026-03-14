@@ -12,6 +12,8 @@ const teacherSchema = new mongoose.Schema({
     specialization: String,
     yearsExperience: Number
 
+
+
 });
 
 module.exports = mongoose.model("Teacher", teacherSchema);

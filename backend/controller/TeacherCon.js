@@ -144,7 +144,56 @@ const deleteTeacher = async (req, res) => {
 
 
 
+// GET TEACHER DASHBOARD STATS
+const getDashboardStats = async (req, res) => {
+  try {
+    const Teacher = require("../model/Teacher");
+    const Class = require("../model/Class");
+    const StudentClass = require("../model/Student_Class");
+    const Exam = require("../model/Exam");
+
+    // Find the teacher profile for this user
+    let teacher = await Teacher.findOne({ user: req.user._id });
+    
+    // If no teacher profile but user is teacher, create one
+    if (!teacher && req.user.role === "teacher") {
+      teacher = await Teacher.create({ user: req.user._id });
+    }
+
+    if (!teacher) {
+      return res.status(404).json({ success: false, message: "Teacher profile not found" });
+    }
+
+    const classes = await Class.find({ teacher: teacher._id });
+    const classIds = classes.map(c => c._id);
+
+    const studentsEnrolled = await StudentClass.countDocuments({ class: { $in: classIds } });
+    const sectionsCount = await Exam.countDocuments({ class: { $in: classIds } });
+
+    // Mock analysis count for now or fetch from StudentClassAnswer
+    const StudentClassAnswer = require("../model/Student_Class_Answer");
+    const analysisCount = await StudentClassAnswer.countDocuments({ 
+      exam: { $in: await Exam.find({ class: { $in: classIds } }).distinct("_id") } 
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        classesCount: classes.length,
+        studentsCount: studentsEnrolled,
+        sectionsCount: sectionsCount,
+        analysisCount: analysisCount
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 module.exports = {
+  getDashboardStats,
   createTeacher,
   getTeachers,
   getTeacherById,
