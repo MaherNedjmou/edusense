@@ -67,3 +67,65 @@ export const STUDENT_COURSES = [
   { id: "phys-11", name: "Physics G-11", teacher: "Mr. Ahmed", progress: 70, color: "from-[#3b82f6] to-[#1d4ed8]" },
   { id: "chem-10", name: "Chemistry G-10", teacher: "Dr. Laila", progress: 92, color: "from-[#10B981] to-[#059669]" },
 ];
+
+export const STUDENT_EXAMS: Record<string, any[]> = {
+  "math-10": [
+    { 
+      id: 101, 
+      title: "Algebra Quiz 1", 
+      date: "Oct 12, 2023", 
+      grade: "A-", 
+      score: 92,
+      feedback: "Excellent grasp of variables, minor arithmetic errors.", 
+      strengths: ["Variable manipulation", "Equation setup"], 
+      weaknesses: ["Arithmetic accuracy"] 
+    },
+    { 
+      id: 102, 
+      title: "Linear Equations Test", 
+      date: "Nov 05, 2023", 
+      grade: "B", 
+      score: 84,
+      feedback: "Strong logic, but struggled with multi-step calculations. Needs practice in complex fractions.", 
+      strengths: ["Logic", "Substitution method"], 
+      weaknesses: ["Mathematical calculation", "Step-by-step documentation"] 
+    }
+  ]
+};
+
+export const STUDENT_PERFORMANCE_TRENDS: Record<string, any> = {
+  "math-10": {
+    labels: ["Quiz 1", "Quiz 2", "Test 1", "Midterm", "Quiz 3"],
+    data: [82, 85, 78, 88, 92]
+  }
+};
+
+export const PER_STUDENT_DATA: Record<string, any> = {
+  "Amira Hassan": {
+    exams: [
+      { title: "Algebra Quiz 1", grade: "A-", score: 92, feedback: "Excellent grasp of variables.", date: "Oct 12, 2023" },
+      { title: "Linear Equations", grade: "B+", score: 88, feedback: "Strong logic, watch for arithmetic.", date: "Nov 05, 2023" },
+    ],
+    trend: [85, 92, 88, 90, 95],
+    strengths: ["Logic", "Variable manipulation"],
+    weaknesses: ["Arithmetic accuracy"]
+  },
+  "Karim Youssef": {
+    exams: [
+      { title: "Algebra Quiz 1", grade: "C+", score: 78, feedback: "Needs practice in basic terms.", date: "Oct 12, 2023" },
+      { title: "Linear Equations", grade: "B", score: 82, feedback: "Improving, but step-by-step logic needs work.", date: "Nov 05, 2023" },
+    ],
+    trend: [70, 75, 78, 80, 82],
+    strengths: ["Visual graphing"],
+    weaknesses: ["Mathematical calculation", "Logic"]
+  },
+  "Lina Samir": {
+    exams: [
+      { title: "Algebra Quiz 1", grade: "A", score: 96, feedback: "Perfect score in logic sections.", date: "Oct 12, 2023" },
+      { title: "Linear Equations", grade: "A-", score: 93, feedback: "Very consistent performance.", date: "Nov 05, 2023" },
+    ],
+    trend: [90, 92, 96, 94, 98],
+    strengths: ["Problem Solving", "Speed"],
+    weaknesses: ["None identified"]
+  }
+};
