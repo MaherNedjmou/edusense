@@ -19,6 +19,8 @@ Chart.register(
   Tooltip,
   Legend
 );
+import { CHART_DATA } from "@/data/mockData";
+
 
 export default function StrengthWeaknessChart() {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
@@ -29,22 +31,17 @@ export default function StrengthWeaknessChart() {
     const chart = new Chart(chartRef.current, {
       type: "bar",
       data: {
-        labels: [
-          "Concept Understanding",
-          "Problem Solving",
-          "Method Accuracy",
-          "Calculation Errors"
-        ],
+        labels: CHART_DATA.strengthWeakness.labels,
         datasets: [
           {
             label: "Strength",
-            data: [70, 65, 60, 40],
+            data: CHART_DATA.strengthWeakness.strengths,
             backgroundColor: '#10B981',
             borderColor: '#10B981'
           },
           {
             label: "Weakness",
-            data: [30, 35, 40, 60],
+            data: CHART_DATA.strengthWeakness.weaknesses,
             backgroundColor: '#F59E0B',
             borderColor: '#F59E0B'
           }

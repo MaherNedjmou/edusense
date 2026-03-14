@@ -1,5 +1,6 @@
 import "@/app/globals.css";
-import TeacherSidebar from "@/components/Sidebar/TeacherSidebar";
+import StudentSidebar from "@/components/Sidebar/StudentSidebar";
+
 
 export default function DashboardLayout({
   children,
@@ -11,7 +12,8 @@ export default function DashboardLayout({
       <body className="antialiased bg-background text-primary">
         <div className="flex min-h-screen">
           {/* Sidebar */}
-          <TeacherSidebar />
+          <StudentSidebar />
+
           {/* Main Content */}
           <main className="flex-1 lg:ml-64 bg-background pt-16 lg:pt-0">
             {children}

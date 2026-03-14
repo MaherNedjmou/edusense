@@ -12,6 +12,8 @@ import {
   Legend,
   Filler
 } from "chart.js";
+import { CHART_DATA } from "@/data/mockData";
+
 
 Chart.register(
   LineController,
@@ -33,11 +35,11 @@ export default function SubmissionsChart() {
     const chart = new Chart(chartRef.current, {
       type: "line",
       data: {
-        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        labels: CHART_DATA.submissions.labels,
         datasets: [
           {
             label: "Submissions",
-            data: [12, 19, 10, 24, 18, 27],
+            data: CHART_DATA.submissions.data,
             tension: 0.4,
             fill: true,
             borderColor: '#10B981',

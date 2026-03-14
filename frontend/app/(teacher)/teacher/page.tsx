@@ -1,18 +1,54 @@
 "use client";
-
-import { Upload, Users, School, FileText, Sparkles, UserPlus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Upload, Users, School, FileText, Sparkles, UserPlus, Loader2 } from "lucide-react";
 import SubmissionsChart from "@/components/Charts/SubmissionsChart";
 import PerformanceDistributionChart from "@/components/Charts/PerformanceChart";
 import StrengthWeaknessChart from "@/components/Charts/StrengthWeaknessChart";
 import Button from "@/components/UI/Button";
+import { RECENT_ACTIVITIES } from "@/data/mockData";
+import api from "@/lib/api";
 
 export default function TeacherDashboard() {
+  const [stats, setStats] = useState({
+    classesCount: 0,
+    studentsCount: 0,
+    sectionsCount: 0,
+    analysisCount: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    api.get<{ data: any }>("/teachers/stats")
+      .then(res => {
+        if (res.data) setStats(res.data);
+      })
+      .catch(err => console.error("Error fetching stats:", err))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const getIcon = (label: string) => {
+    switch (label) {
+      case "Classes": return <School />;
+      case "Students": return <Users />;
+      case "Submissions": return <FileText />;
+      case "AI Analyses": return <Sparkles />;
+      default: return <FileText />;
+    }
+  };
+
+  const statItems = [
+    { label: "Classes", value: stats.classesCount.toString() },
+    { label: "Students", value: stats.studentsCount.toString() },
+    { label: "Sections", value: stats.sectionsCount.toString() },
+    { label: "AI Analyses", value: stats.analysisCount.toString() },
+  ];
+
   return (
     <div className="p-8 space-y-8 bg-background text-primary min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-semibold">Dashboard</h1>
+          <h1 className="text-3xl font-semibold text-primary">Dashboard</h1>
           <p className="text-primary/70">Overview of your classes and AI analysis.</p>
         </div>
 
@@ -29,13 +65,17 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid md:grid-cols-4 gap-6">
-        <StatCard icon={<School />} label="Classes" value="4" />
-        <StatCard icon={<Users />} label="Students" value="96" />
-        <StatCard icon={<FileText />} label="Submissions" value="210" />
-        <StatCard icon={<Sparkles />} label="AI Analyses" value="210" />
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center items-center py-20">
+          <Loader2 size={32} className="animate-spin text-primary/30" />
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-4 gap-6">
+          {statItems.map((stat, i) => (
+            <StatCard key={i} icon={getIcon(stat.label)} label={stat.label} value={stat.value} />
+          ))}
+        </div>
+      )}
 
       {/* Charts Section */}
       <div className="grid lg:grid-cols-3 gap-6">
@@ -60,9 +100,9 @@ export default function TeacherDashboard() {
           <h2 className="font-semibold mb-6 text-primary">Recent Analyses</h2>
 
           <div className="space-y-4">
-            <ActivityRow student="Amira Hassan" exam="Math Final" status="Completed" />
-            <ActivityRow student="Karim Youssef" exam="Physics Test" status="Completed" />
-            <ActivityRow student="Lina Samir" exam="Chemistry Quiz" status="Processing" />
+            {RECENT_ACTIVITIES.map((activity, i) => (
+              <ActivityRow key={i} {...activity} />
+            ))}
           </div>
         </div>
       </div>

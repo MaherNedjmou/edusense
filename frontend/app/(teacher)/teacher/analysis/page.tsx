@@ -1,19 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { Upload, FileText, Brain, Sparkles, Crown, X, CheckCircle, Lightbulb, AlertTriangle } from "lucide-react";
+import { useState, useMemo } from "react";
+import { 
+  Upload, FileText, Brain, Sparkles, Crown, X, 
+  CheckCircle, Lightbulb, AlertTriangle, ChevronDown, 
+  Users, BookOpen, GraduationCap 
+} from "lucide-react";
 import Button from "@/components/UI/Button";
 import InsightCard from "@/components/UI/InsightCard";
+import { CLASSES_DATA, MOCK_STUDENTS } from "@/data/classesData";
+import { CLASS_SECTIONS_DATA } from "@/data/mockData";
 
 export default function AnalysisPage() {
-  const [modelSolution, setModelSolution] = useState<File | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedSectionId, setSelectedSectionId] = useState<number | "">("");
+  const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [studentPapers, setStudentPapers] = useState<File[]>([]);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  
+  // New States for Result Flow
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [score, setScore] = useState(0);
+
+  // Derive sections based on selected class
+  const sections = useMemo(() => {
+    return selectedClassId ? CLASS_SECTIONS_DATA[selectedClassId] || [] : [];
+  }, [selectedClassId]);
+
+  // Derive selected section object
+  const selectedSection = useMemo(() => {
+    return sections.find(s => s.id === selectedSectionId);
+  }, [sections, selectedSectionId]);
 
   const handleStudentUpload = (files: FileList | null) => {
     if (!files) return;
     const newFiles = Array.from(files);
-    if (studentPapers.length + newFiles.length > 1) {
+    if (studentPapers.length + newFiles.length > 5) {
       setShowUpgrade(true);
       return;
     }
@@ -25,177 +48,338 @@ export default function AnalysisPage() {
     handleStudentUpload(e.dataTransfer.files);
   };
 
-  const handleModelUpload = (files: FileList | null) => {
-    if (!files) return;
-    setModelSolution(files[0]);
-  };
-
-  const handleModelDrop = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    handleModelUpload(e.dataTransfer.files);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => e.preventDefault();
   const removeStudentFile = (index: number) =>
-    setStudentPapers(studentPapers.filter((_, i) => i !== index));
+    setStudentPapers(studentPapers.filter(((_, i) => i !== index)));
+
+  const startAnalysis = () => {
+    setIsAnalyzing(true);
+    // Simulation
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      setAnalysisComplete(true);
+      setScore(Math.floor(Math.random() * 20) + 75); // Mock score 75-95
+    }, 2500);
+  };
+
+  const resetAnalysis = () => {
+    setAnalysisComplete(false);
+    setStudentPapers([]);
+  };
+
+  const isReadyForAnalysis = selectedClassId && selectedSectionId && selectedStudent && studentPapers.length > 0;
 
   return (
-    <div className="p-8 bg-background text-primary min-h-screen space-y-8">
+    <div className="p-8 bg-background text-primary min-h-screen space-y-8 relative">
+      
+      {/* Loading Overlay */}
+      {isAnalyzing && (
+        <div className="fixed inset-0 z-[100] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center space-y-6">
+           <div className="relative">
+              <div className="absolute inset-0 bg-secondary/20 rounded-full animate-ping"></div>
+              <div className="bg-secondary p-8 rounded-full shadow-2xl relative">
+                <Brain size={48} className="text-white animate-pulse" />
+              </div>
+           </div>
+           <div className="text-center space-y-1">
+              <h2 className="text-2xl font-black text-primary">AI is Analyzing...</h2>
+              <p className="text-primary/40 font-bold uppercase tracking-widest text-xs">Scanning {studentPapers[0]?.name} against model solution</p>
+           </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-primary">Paper Analysis</h1>
-          <p className="text-primary/50">Upload a model solution and student sheet to generate AI insights.</p>
+          <p className="text-primary/50 text-sm">Select a context and upload a student paper to generate AI insights.</p>
         </div>
       </div>
 
-      {/* Upload Section */}
-      <div className="grid md:grid-cols-2 gap-5">
+      {/* Selection Context */}
+      <div className="grid md:grid-cols-3 gap-4">
+        {/* Class Selection */}
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-primary/40 uppercase tracking-widest px-1">Class</label>
+          <div className="relative">
+            <select
+              disabled={analysisComplete}
+              value={selectedClassId}
+              onChange={(e) => {
+                setSelectedClassId(e.target.value);
+                setSelectedSectionId("");
+              }}
+              className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-secondary/20 appearance-none cursor-pointer disabled:opacity-50"
+            >
+              <option value="">Select a class</option>
+              {Object.entries(CLASSES_DATA).map(([id, cls]) => (
+                <option key={id} value={id}>{cls.name}</option>
+              ))}
+            </select>
+            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
+          </div>
+        </div>
 
-        {/* Student Paper */}
-        <div className="bg-white border border-primary/10 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="bg-secondary/10 p-2 rounded-xl">
-                <Upload size={16} />
+        {/* Section Selection */}
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-primary/40 uppercase tracking-widest px-1">Section</label>
+          <div className="relative">
+            <select
+              disabled={!selectedClassId || analysisComplete}
+              value={selectedSectionId}
+              onChange={(e) => setSelectedSectionId(Number(e.target.value))}
+              className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-secondary/20 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Select a section</option>
+              {sections.map((sec) => (
+                <option key={sec.id} value={sec.id}>{sec.title}</option>
+              ))}
+            </select>
+            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Student Selection */}
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-primary/40 uppercase tracking-widest px-1">Student</label>
+          <div className="relative">
+            <select
+              disabled={!selectedSectionId || analysisComplete}
+              value={selectedStudent}
+              onChange={(e) => setSelectedStudent(e.target.value)}
+              className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-secondary/20 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Select a student</option>
+              {MOCK_STUDENTS.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-8">
+        
+        {/* Left Column: Model Solution Info & Actions */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white border border-primary/10 rounded-3xl p-6 shadow-sm space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/5 p-2.5 rounded-2xl">
+                <FileText size={20} className="text-primary/60" />
               </div>
-              <div>
-                <h2 className="font-bold text-primary text-sm">Student Paper</h2>
-                <p className="text-xs text-primary/40">Answer sheet upload</p>
-              </div>
+              <h3 className="font-bold text-primary">Model Solution</h3>
             </div>
-            <span className="text-xs font-semibold bg-accent/10 text-accent px-2.5 py-1 rounded-full">
-              Free: 1 file
-            </span>
+
+            {selectedSection ? (
+              <div className="space-y-4">
+                {selectedSection.modelSolutionName ? (
+                  <div className="flex items-center gap-3 bg-secondary/5 border border-secondary/20 rounded-2xl px-4 py-3">
+                    <div className="bg-secondary/10 p-2 rounded-xl shrink-0">
+                      <CheckCircle size={18} className="text-secondary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-primary truncate">{selectedSection.modelSolutionName}</p>
+                      <p className="text-[10px] text-primary/40 uppercase font-bold tracking-tight">Reference answer key</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 border-2 border-dashed border-primary/10 rounded-2xl text-center space-y-3">
+                    <div className="flex justify-center">
+                      <AlertTriangle size={24} className="text-amber-500/60" />
+                    </div>
+                    <p className="text-xs text-primary/60 font-medium">No model solution found for this section.</p>
+                    <Button variant="outline" className="text-[10px] py-1.5 h-auto px-3">Upload One Now</Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="py-10 text-center">
+                <p className="text-xs text-primary/30 font-bold italic">Select a section to view its reference answer key</p>
+              </div>
+            )}
           </div>
 
-          <label
-            onDrop={handleStudentDrop}
-            onDragOver={handleDragOver}
-            className="flex flex-col items-center justify-center border-2 border-dashed border-primary/15 rounded-xl p-8 cursor-pointer hover:border-secondary/40 hover:bg-secondary/5 transition-all group"
-          >
-            <div className="bg-primary/5 group-hover:bg-secondary/10 p-4 rounded-2xl mb-3 transition-colors">
-              <Upload size={24} className="text-primary/40 group-hover:text-secondary transition-colors" />
-            </div>
-            <span className="text-sm font-medium text-primary/60 group-hover:text-primary transition-colors">
-              Drop file here or <span className="text-secondary font-semibold">browse</span>
-            </span>
-            <span className="text-xs text-primary/30 mt-1">PDF, PNG, JPG supported</span>
-            <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden"
-              onChange={(e) => handleStudentUpload(e.target.files)} />
-          </label>
-
-          {studentPapers.length > 0 && (
-            <div className="flex flex-wrap gap-3">
-              {studentPapers.map((file, index) => (
-                <div key={index} className="flex items-center gap-2 bg-secondary/5 border border-secondary/20 rounded-xl px-3 py-2 relative group">
-                  {file.type.startsWith("image/") ? (
-                    <img src={URL.createObjectURL(file)} className="w-8 h-8 object-cover rounded-lg" />
-                  ) : (
-                    <div className="bg-secondary/10 p-1.5 rounded-lg">
-                      <FileText size={16} className="text-secondary" />
-                    </div>
-                  )}
-                  <p className="text-xs font-medium text-primary max-w-25 truncate">{file.name}</p>
-                  <button onClick={() => removeStudentFile(index)}
-                    className="ml-1 bg-primary/10 hover:bg-gray-500/20 text-primary hover:text-white w-5 h-5 rounded-full flex items-center justify-center transition-colors">
-                    <X size={10} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {showUpgrade && (
-            <div className="border border-accent/30 bg-accent/8 rounded-xl p-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <Crown size={16} className="text-accent shrink-0" />
-                <p className="text-xs font-medium text-primary">Bulk upload available on <span className="font-bold">Pro plan</span></p>
-              </div>
-              <button className="bg-accent text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity shrink-0">
-                Upgrade
-              </button>
+          {!analysisComplete ? (
+            <Button 
+              variant="primary" 
+              onClick={startAnalysis}
+              disabled={!isReadyForAnalysis}
+              className="w-full py-6 rounded-2xl shadow-xl shadow-secondary/20"
+            >
+              <Sparkles size={20} />
+              Generate AI Insights
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <Button 
+                variant="primary" 
+                onClick={resetAnalysis}
+                className="w-full py-6 rounded-2xl shadow-xl shadow-secondary/20"
+              >
+                <CheckCircle size={20} />
+                Store Result
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={resetAnalysis}
+                className="w-full py-4 rounded-2xl"
+              >
+                Discard Result
+              </Button>
             </div>
           )}
         </div>
 
-        {/* Model Solution */}
-        <div className="bg-white border border-primary/10 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-primary/8 p-2 rounded-xl">
-              <FileText size={16} className="text-primary/60" />
-            </div>
-            <div>
-              <h2 className="font-bold text-primary text-sm">Model Solution</h2>
-              <p className="text-xs text-primary/40">Reference answer key</p>
-            </div>
-          </div>
+        {/* Right Column: Upload Student Paper or Result View */}
+        <div className="lg:col-span-2 space-y-6">
+          {!analysisComplete ? (
+            <div className="bg-white border border-primary/10 rounded-3xl p-8 shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-secondary/10 p-3 rounded-2xl">
+                    <GraduationCap size={24} className="text-secondary" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-primary">Student Paper</h2>
+                    <p className="text-sm text-primary/40 font-medium">Answer sheet upload</p>
+                  </div>
+                </div>
+                {studentPapers.length > 0 && (
+                  <span className="text-[10px] font-black bg-secondary/10 text-secondary px-3 py-1.5 rounded-full uppercase tracking-widest border border-secondary/10">
+                    {studentPapers.length} File Added
+                  </span>
+                )}
+              </div>
 
-          <label
-            onDrop={handleModelDrop}
-            onDragOver={handleDragOver}
-            className="flex flex-col items-center justify-center border-2 border-dashed border-primary/15 rounded-xl p-8 cursor-pointer hover:border-secondary/40 hover:bg-secondary/5 transition-all group"
-          >
-            <div className="bg-primary/5 group-hover:bg-secondary/10 p-4 rounded-2xl mb-3 transition-colors">
-              <FileText size={24} className="text-primary/40 group-hover:text-secondary transition-colors" />
-            </div>
-            <span className="text-sm font-medium text-primary/60 group-hover:text-primary transition-colors">
-              Drop file here or <span className="text-secondary font-semibold">browse</span>
-            </span>
-            <span className="text-xs text-primary/30 mt-1">PDF, PNG, JPG supported</span>
-            <input type="file" accept=".pdf,.png,.jpg,.jpeg" className="hidden"
-              onChange={(e) => handleModelUpload(e.target.files)} />
-          </label>
+              <label
+                onDrop={handleStudentDrop}
+                onDragOver={(e) => e.preventDefault()}
+                className="flex flex-col items-center justify-center border-2 border-dashed border-primary/10 rounded-3xl p-16 cursor-pointer hover:border-secondary/40 hover:bg-secondary/5 transition-all group relative overflow-hidden"
+              >
+                <div className="bg-primary/5 group-hover:bg-secondary/10 p-6 rounded-3xl mb-4 transition-colors">
+                  <Upload size={32} className="text-primary/40 group-hover:text-secondary transition-colors" />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-lg font-bold text-primary group-hover:text-secondary transition-colors">
+                    Drop file here or <span className="text-secondary">browse</span>
+                  </p>
+                  <p className="text-sm text-primary/30 font-medium">Supports PDF, PNG, JPG (Max 10MB)</p>
+                </div>
+                <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden"
+                  onChange={(e) => handleStudentUpload(e.target.files)} />
+              </label>
 
-          {modelSolution && (
-            <div className="flex items-center gap-3 bg-secondary/5 border border-secondary/20 rounded-xl px-4 py-3">
-              {modelSolution.type.startsWith("image/") ? (
-                <img src={URL.createObjectURL(modelSolution)} className="w-9 h-9 object-cover rounded-lg shrink-0" />
-              ) : (
-                <div className="bg-secondary/10 p-2 rounded-lg shrink-0">
-                  <FileText size={18} className="text-secondary" />
+              {studentPapers.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {studentPapers.map((file, index) => (
+                    <div key={index} className="flex items-center gap-3 bg-primary/2 border border-primary/5 rounded-2xl p-3 relative group hover:bg-white hover:shadow-md transition-all">
+                      <div className="bg-secondary/10 p-2 rounded-xl shrink-0">
+                        <FileText size={18} className="text-secondary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-primary truncate">{file.name}</p>
+                        <p className="text-[10px] text-primary/40">{(file.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                      <button onClick={() => removeStudentFile(index)}
+                        className="absolute -top-2 -right-2 bg-white text-primary border border-primary/10 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-50 hover:text-red-500">
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-primary truncate">{modelSolution.name}</p>
-                <p className="text-xs text-primary/40">{(modelSolution.size / 1024).toFixed(1)} KB</p>
-              </div>
-              <CheckCircle size={16} className="text-secondary shrink-0" />
+              
+              {showUpgrade && (
+                <div className="bg-accent/5 border border-accent/20 rounded-2xl p-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                      <Crown size={20} className="text-accent shrink-0" />
+                      <p className="text-xs font-bold text-primary/70">Bulk analysis and multi-file processing is restricted on Free plan.</p>
+                  </div>
+                  <Button variant="primary" className="text-[10px] h-auto py-2 px-4 shadow-lg shadow-accent/20 bg-accent border-none">
+                      Upgrade to Pro
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Analysis Result View */
+            <div className="bg-white border-2 border-secondary/20 rounded-3xl p-8 shadow-2xl space-y-8 animate-in fade-in zoom-in duration-500">
+               <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-secondary p-3 rounded-2xl shadow-lg shadow-secondary/30">
+                      <Sparkles size={24} className="text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-primary">Performance Result</h2>
+                      <p className="text-sm text-primary/40 font-bold uppercase tracking-widest">{selectedStudent} · {selectedSection?.title}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-primary/30 uppercase tracking-[0.2em] mb-1">Final Score</p>
+                    <div className="text-4xl font-black text-secondary">{score}%</div>
+                  </div>
+               </div>
+
+               <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="bg-green-50/50 border border-green-100 rounded-2xl p-5 space-y-3">
+                     <div className="flex items-center gap-2 text-green-700 font-black text-xs uppercase tracking-widest">
+                        <CheckCircle size={14} /> Key Strengths
+                     </div>
+                     <ul className="text-xs text-primary/70 space-y-2 list-disc pl-4 font-medium">
+                        <li>Excellent application of Newton's 2nd law concepts.</li>
+                        <li>Clear step-by-step vector decomposition.</li>
+                        <li>Strong units and dimensions accuracy.</li>
+                     </ul>
+                  </div>
+                  <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-5 space-y-3">
+                     <div className="flex items-center gap-2 text-amber-700 font-black text-xs uppercase tracking-widest">
+                        <AlertTriangle size={14} /> Focus Areas
+                     </div>
+                     <ul className="text-xs text-primary/70 space-y-2 list-disc pl-4 font-medium">
+                        <li>Slight confusion between mass and weight in Q3.</li>
+                        <li>Intermediate calculation rounding error in Part B.</li>
+                     </ul>
+                  </div>
+               </div>
+
+               <div className="bg-primary/2 border border-primary/5 rounded-2xl p-6 space-y-3">
+                  <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest">
+                    <Lightbulb size={14} className="text-secondary" /> AI Teacher's Note
+                  </div>
+                  <p className="text-sm text-primary/70 leading-relaxed font-medium">
+                    "Student shows high mastery of mechanics logic. The primary issue is arithmetic precision in multi-step problems. Recommend 10 mins of focus on 'Significant Figures' in the next lesson."
+                  </p>
+               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* CTA */}
-      <div className="flex justify-center">
-        <Button variant="primary">
-          <Sparkles size={18} />
-          Generate Insights
-        </Button>
-      </div>
-
-      {/* Insights */}
-      <div>
-        <p className="text-sm font-bold uppercase tracking-widest mb-4">AI Insights</p>
-        <div className="grid lg:grid-cols-3 gap-5">
+      {/* Insights Placeholder */}
+      <div className="space-y-6 pt-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-black uppercase tracking-[0.2em] text-primary/30">AI Performance Insights</h2>
+          <div className="h-px flex-1 bg-primary/10 ml-6"></div>
+        </div>
+        
+        <div className="grid lg:grid-cols-3 gap-5 text-sm">
           <InsightCard
             variant="success"
             icon={<CheckCircle size={18} />}
             title="Key Strengths"
-            text="Most students demonstrated strong conceptual understanding and structured reasoning."
+            text={analysisComplete ? "Demonstrated deep conceptual understanding of the core subject matter." : "Initial scans will appear here. Select context and student to begin."}
           />
           <InsightCard
             variant="warning"
             icon={<AlertTriangle size={18} />}
             title="Common Weaknesses"
-            text="Several students struggled with applying formulas correctly and skipped intermediate steps."
+            text={analysisComplete ? "Occasional arithmetic slips in complex calculations observed." : "AI will identify patterns across multiple papers for this section."}
           />
           <InsightCard
             variant="info"
             icon={<Lightbulb size={18} />}
             title="AI Recommendation"
-            text="Reinforce formula application and encourage step-by-step solutions in upcoming lessons."
+            text={analysisComplete ? "Focus on rounding rules and step-by-step verification." : "Tailored feedback will be generated based on the model solution."}
           />
         </div>
       </div>
