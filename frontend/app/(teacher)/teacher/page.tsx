@@ -5,8 +5,20 @@ import SubmissionsChart from "@/components/Charts/SubmissionsChart";
 import PerformanceDistributionChart from "@/components/Charts/PerformanceChart";
 import StrengthWeaknessChart from "@/components/Charts/StrengthWeaknessChart";
 import Button from "@/components/UI/Button";
+import { DASHBOARD_STATS, RECENT_ACTIVITIES } from "@/data/mockData";
+
 
 export default function TeacherDashboard() {
+  const getIcon = (label: string) => {
+    switch (label) {
+      case "Classes": return <School />;
+      case "Students": return <Users />;
+      case "Submissions": return <FileText />;
+      case "AI Analyses": return <Sparkles />;
+      default: return <FileText />;
+    }
+  };
+
   return (
     <div className="p-8 space-y-8 bg-background text-primary min-h-screen">
       {/* Header */}
@@ -29,12 +41,10 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid md:grid-cols-4 gap-6">
-        <StatCard icon={<School />} label="Classes" value="4" />
-        <StatCard icon={<Users />} label="Students" value="96" />
-        <StatCard icon={<FileText />} label="Submissions" value="210" />
-        <StatCard icon={<Sparkles />} label="AI Analyses" value="210" />
+        {DASHBOARD_STATS.teacher.map((stat, i) => (
+          <StatCard key={i} icon={getIcon(stat.label)} label={stat.label} value={stat.value} />
+        ))}
       </div>
 
       {/* Charts Section */}
@@ -60,9 +70,9 @@ export default function TeacherDashboard() {
           <h2 className="font-semibold mb-6 text-primary">Recent Analyses</h2>
 
           <div className="space-y-4">
-            <ActivityRow student="Amira Hassan" exam="Math Final" status="Completed" />
-            <ActivityRow student="Karim Youssef" exam="Physics Test" status="Completed" />
-            <ActivityRow student="Lina Samir" exam="Chemistry Quiz" status="Processing" />
+            {RECENT_ACTIVITIES.map((activity, i) => (
+              <ActivityRow key={i} {...activity} />
+            ))}
           </div>
         </div>
       </div>

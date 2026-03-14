@@ -10,6 +10,8 @@ import {
 } from "chart.js";
 
 Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
+import { CHART_DATA } from "@/data/mockData";
+
 
 export default function PerformanceChart() {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
@@ -20,15 +22,10 @@ export default function PerformanceChart() {
     const chart = new Chart(chartRef.current, {
       type: "doughnut",
       data: {
-        labels: [
-          "Excellent",
-          "Good",
-          "Average",
-          "Needs Improvement"
-        ],
+        labels: CHART_DATA.performance.labels,
         datasets: [
           {
-            data: [22, 34, 28, 16],
+            data: CHART_DATA.performance.data,
             backgroundColor: [
               '#10B981', // Sage Emerald
               '#F59E0B', // Amber Gold

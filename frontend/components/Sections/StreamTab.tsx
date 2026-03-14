@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import Button from "@/components/UI/Button";
+import { CLASS_SECTIONS_DATA } from "@/data/mockData";
+
 
 interface Section {
   id: number;
@@ -18,6 +20,7 @@ interface Section {
 
 interface StreamTabProps {
   cls: {
+    id: string;
     name: string;
     description: string;
     code: string;
@@ -26,8 +29,10 @@ interface StreamTabProps {
 }
 
 export default function StreamTab({ cls }: StreamTabProps) {
-  const [sections, setSections] = useState<Section[]>([]);
-  const [expandedIds, setExpandedIds] = useState<number[]>([]);
+  const initialSections = CLASS_SECTIONS_DATA[cls.id] || [];
+  const [sections, setSections] = useState<Section[]>(initialSections);
+  const [expandedIds, setExpandedIds] = useState<number[]>(initialSections.map(s => s.id));
+
   const [showAddSection, setShowAddSection] = useState(false);
   const [sectionTitle, setSectionTitle] = useState("");
   const [sectionDesc, setSectionDesc] = useState("");
