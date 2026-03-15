@@ -12,7 +12,6 @@ cloudinary.config({
 
 const uploadFilesController = async (req, res) => {
   const files = req.files;
-  console.log("Received files:", files);
 
   if (!files || files.length === 0) {
     return res.status(400).json({ message: "No files uploaded" });
@@ -26,11 +25,11 @@ const uploadFilesController = async (req, res) => {
         folder: "uploads",
       });
 
-      console.log("Uploaded file URL:", resCloud.secure_url);
 
       results.push({
         originalName: file.originalname,
         cloudinaryUrl: resCloud.secure_url,
+        public_id: resCloud.public_id,
       });
 
       fs.unlinkSync(file.path);
@@ -50,4 +49,14 @@ const uploadFilesController = async (req, res) => {
   });
 };
 
-module.exports = { uploadFilesController };
+const deleteFileFromCloudinary = async (public_id) => {
+  try {
+    await cloudinary.uploader.destroy(public_id);
+    return { success: true };
+  } catch (err) {
+    console.error("Cloudinary delete error:", err);
+    return { success: false, error: err.message };
+  }
+};
+
+module.exports = { uploadFilesController, deleteFileFromCloudinary };

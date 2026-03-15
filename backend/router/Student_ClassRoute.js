@@ -5,6 +5,8 @@ const scController = require("../controller/Student_ClassCon");
 
 router.post("/", scController.createStudentClass);
 
+router.get("/stats/:classId", scController.getStudentClassesStats);
+
 router.get("/", scController.getStudentClasses);
 
 router.get("/:id", scController.getStudentClassById);

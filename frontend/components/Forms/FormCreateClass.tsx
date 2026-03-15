@@ -32,7 +32,6 @@ export default function FormCreateClass({ onClose, onClassCreated }: FormCreateC
         color: BANNER_COLORS[colorIdx]
       };
 
-      console.log(payload); 
 
       const res = await api.post<any>("/classes", payload);
       
