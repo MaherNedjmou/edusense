@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Plus, MoreVertical, X, Award, Calendar, CheckCircle, AlertCircle, TrendingUp, UserPlus, Filter, ShieldCheck, User } from "lucide-react";
+import { Plus, MoreVertical, X, Award, Calendar, CheckCircle, AlertCircle, TrendingUp, UserPlus, Filter, ShieldCheck, User, ExternalLink } from "lucide-react";
 import { MOCK_STUDENTS } from "@/data/classesData";
 import Button from "@/components/UI/Button";
 import StudentMiniTrendChart from "@/components/Charts/StudentMiniTrendChart";
@@ -63,7 +63,6 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
           })));
         }
         if (statsRes) {
-          console.log(statsRes);
           setPerStudentData(statsRes);
         }
       } catch (err) {
@@ -98,8 +97,8 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
               key={t}
               onClick={() => setFilterType(t)}
               className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all uppercase tracking-widest ${filterType === t
-                  ? "bg-white text-secondary shadow-sm border border-secondary/10"
-                  : "text-primary/40 hover:text-primary/60"
+                ? "bg-white text-secondary shadow-sm border border-secondary/10"
+                : "text-primary/40 hover:text-primary/60"
                 }`}
             >
               {t}
@@ -311,6 +310,22 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
                           <p className="text-xs text-primary/60 italic leading-relaxed bg-white/50 p-3 rounded-xl border border-primary/5">
                             "{exam.feedback}"
                           </p>
+                          {exam.answers && exam.answers.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {exam.answers.map((ans: any, idx: number) => (
+                                <a
+                                  key={idx}
+                                  href={ans.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/5 hover:bg-secondary/10 text-[10px] font-bold text-secondary hover:text-secondary-dark rounded-lg border border-secondary/10 transition-all group/link"
+                                >
+                                  <ExternalLink size={10} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                                  View Answer {exam.answers.length > 1 ? idx + 1 : ""}
+                                </a>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

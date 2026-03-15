@@ -13,4 +13,6 @@ router.put("/:id", feedbackController.updateFeedback);
 
 router.delete("/:id", feedbackController.deleteFeedback);
 
+router.post("/generate", feedbackController.generateFeedback);
+
 module.exports = router;

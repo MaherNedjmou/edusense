@@ -47,7 +47,7 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
   const [isBulkAnalyzing, setIsBulkAnalyzing] = useState<any | null>(null);
 
   const copyCode = () => {
-    navigator.clipboard.writeText(cls.code);
+    navigator.clipboard.writeText(cls._id);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -198,7 +198,7 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
         <div className="bg-white border border-primary/10 rounded-2xl p-4 shadow-sm">
           <p className="text-xs font-bold text-primary/40 uppercase tracking-widest mb-3">Class Code</p>
           <div className="flex items-center justify-between">
-            <span className="font-mono font-bold text-xl text-primary">{cls.code}</span>
+            <span className="font-mono font-bold text-xl text-primary">{cls._id.slice(0, 7)}...</span>
             <button
               onClick={copyCode}
               className="flex items-center gap-1.5 text-xs text-secondary font-semibold hover:opacity-80 transition-opacity"

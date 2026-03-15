@@ -34,17 +34,17 @@ async function request<T = unknown>(path: string, options: RequestOptions = {}):
 }
 
 export const api = {
-  get:    <T = unknown>(path: string, opts?: RequestOptions) =>
-            request<T>(path, { method: "GET", ...opts }),
+  get: <T = unknown>(path: string, opts?: RequestOptions) =>
+    request<T>(path, { method: "GET", ...opts }),
 
-  post:   <T = unknown>(path: string, body: object, opts?: RequestOptions) =>
-            request<T>(path, { method: "POST", body: JSON.stringify(body), ...opts }),
+  post: <T = unknown>(path: string, body: object, opts?: RequestOptions) =>
+    request<T>(path, { method: "POST", body: JSON.stringify(body), ...opts }),
 
-  put:    <T = unknown>(path: string, body: object, opts?: RequestOptions) =>
-            request<T>(path, { method: "PUT", body: JSON.stringify(body), ...opts }),
+  put: <T = unknown>(path: string, body: object, opts?: RequestOptions) =>
+    request<T>(path, { method: "PUT", body: JSON.stringify(body), ...opts }),
 
   delete: <T = unknown>(path: string, opts?: RequestOptions) =>
-            request<T>(path, { method: "DELETE", ...opts }),
+    request<T>(path, { method: "DELETE", ...opts }),
 
   upload: async <T = unknown>(path: string, formData: FormData): Promise<T> => {
     const response = await fetch(`${BASE_URL}${path}`, {

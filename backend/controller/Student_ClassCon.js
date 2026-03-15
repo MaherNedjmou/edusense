@@ -131,6 +131,7 @@ const getStudentClassesStats = async (req, res) => {
                 grade: grade,
                 score: scorePercentage,
                 feedback: feedback ? (feedback.recommendation || feedback.keyinsights || "Good work.") : "No feedback provided",
+                answers: ans.answers || [],
                 timestamp: exam ? exam.createdAt : new Date(0)
             });
 
