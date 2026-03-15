@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Mail, Lock } from "lucide-react";
@@ -7,6 +8,7 @@ import Button from "@/components/UI/Button";
 import api from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
 import { useStore } from "@/store/useStore";
+import googleIcon from "@/public/google.svg";
 
 export default function LoginForm() {
 
@@ -98,7 +100,7 @@ export default function LoginForm() {
         <Button
           type="submit"
           variant="primary"
-          className="w-full h-12 text-base font-bold shadow-lg shadow-secondary/20"
+          className="w-full h-12 text-base font-bold"
           disabled={isLoading}
         >
           {isLoading ? (
@@ -110,6 +112,22 @@ export default function LoginForm() {
             "Login"
           )}
         </Button>
+
+        <div className="relative flex items-center gap-3">
+          <div className="flex-1 h-px bg-primary/10" />
+          <span className="text-xs font-semibold text-primary/30 uppercase tracking-widest">or</span>
+          <div className="flex-1 h-px bg-primary/10" />
+        </div>
+        
+        <Button
+          variant="outline"
+          type="button"
+          className="w-full h-12 text-base font-bold flex items-center justify-center gap-2"
+        >
+          <Image src={googleIcon} alt="Google" className="w-5 h-5" />
+          Continue with Google
+        </Button>
+
       </form>
 
       <div className="text-center">

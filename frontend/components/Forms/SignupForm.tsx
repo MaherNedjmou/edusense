@@ -1,11 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Mail, Lock, User, UserCircle, Briefcase, GraduationCap } from "lucide-react";
 import Button from "@/components/UI/Button";
 import api from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
+import googleIcon from "@/public/google.svg";
 
 export default function SignupForm() {
   const router = useRouter();
@@ -60,7 +62,7 @@ export default function SignupForm() {
 
       if (res.success) {
         saveAuth(res.token, res.user);
-        
+
         // Redirect based on role
         if (res.user.role === "teacher") {
           router.push("/teacher");
@@ -76,6 +78,7 @@ export default function SignupForm() {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl p-8 border border-primary/5 space-y-8">
@@ -151,33 +154,33 @@ export default function SignupForm() {
           </div>
 
           <div className="space-y-3">
-             <label className="text-sm font-semibold text-primary/70 ml-1">I am a...</label>
-             <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, role: "student" })}
-                  className={`flex-1 flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 ${
-                    formData.role === "student"
-                      ? "border-secondary bg-secondary/5 text-secondary shadow-md"
-                      : "border-primary/5 bg-background text-primary/40 hover:border-primary/10"
-                  }`}
-                >
-                  <GraduationCap size={24} />
-                  <span className="font-bold text-sm">Student</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, role: "teacher" })}
-                  className={`flex-1 flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 ${
-                    formData.role === "teacher"
-                      ? "border-secondary bg-secondary/5 text-secondary shadow-md"
-                      : "border-primary/5 bg-background text-primary/40 hover:border-primary/10"
-                  }`}
-                >
-                  <Briefcase size={24} />
-                  <span className="font-bold text-sm">Teacher</span>
-                </button>
-             </div>
+            <label className="text-sm font-semibold text-primary/70 ml-1">I am a...</label>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, role: "student" })}
+                className={`flex-1 flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 hover:cursor-pointer ${
+                  formData.role === "student"
+                    ? "border-secondary bg-secondary/5 text-secondary shadow-md"
+                    : "border-primary/5 bg-background text-primary/40 hover:border-primary/10"
+                }`}
+              >
+                <GraduationCap size={24} />
+                <span className="font-bold text-sm">Student</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, role: "teacher" })}
+                className={`flex-1 flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2 hover:cursor-pointer ${
+                  formData.role === "teacher"
+                    ? "border-secondary bg-secondary/5 text-secondary shadow-md"
+                    : "border-primary/5 bg-background text-primary/40 hover:border-primary/10"
+                }`}
+              >
+                <Briefcase size={24} />
+                <span className="font-bold text-sm">Teacher</span>
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -189,10 +192,25 @@ export default function SignupForm() {
           <Button
             type="submit"
             variant="primary"
-            className="w-full h-12 text-base font-bold shadow-lg shadow-secondary/20 mt-4"
+            className="w-full h-12 text-base font-bold mt-4"
             disabled={isLoading}
           >
             {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Continue"}
+          </Button>
+
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 h-px bg-primary/10" />
+            <span className="text-xs font-semibold text-primary/30 uppercase tracking-widest">or</span>
+            <div className="flex-1 h-px bg-primary/10" />
+          </div>
+
+          <Button
+            variant="outline"
+            type="button"
+            className="w-full h-12 text-base font-bold flex items-center justify-center gap-2"
+          >
+            <Image src={googleIcon} alt="Google" className="w-5 h-5" />
+            Continue with Google
           </Button>
         </form>
       ) : (

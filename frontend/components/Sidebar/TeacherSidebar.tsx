@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Home, NotepadTextDashed, Package, Users, User, LogOut, Menu, X } from "lucide-react";
+import { Home, NotepadTextDashed, Package, User, LogOut, Menu, X } from "lucide-react";
 
 const DashboardSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
