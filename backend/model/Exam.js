@@ -24,14 +24,16 @@ const examSchema = new mongoose.Schema({
     // List of exam pages (images)
     examImages: [
         {
-            type: String
+            url: String,
+            public_id: String
         }
     ],
 
     // List of solution pages (images)
     solutionImages: [
         {
-            type: String
+            url: String,
+            public_id: String
         }
     ],
 

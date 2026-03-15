@@ -10,10 +10,11 @@ import Button from "@/components/UI/Button";
 import InsightCard from "@/components/UI/InsightCard";
 import { CLASSES_DATA, MOCK_STUDENTS } from "@/data/classesData";
 import { CLASS_SECTIONS_DATA } from "@/data/mockData";
+import api from "@/lib/api";
 
 export default function AnalysisPage() {
   const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const [selectedSectionId, setSelectedSectionId] = useState<number | "">("");
+  const [selectedSectionId, setSelectedSectionId] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [studentPapers, setStudentPapers] = useState<File[]>([]);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -23,15 +24,63 @@ export default function AnalysisPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [score, setScore] = useState(0);
+  const [feedbackData, setFeedbackData] = useState<any>(null);
+  const [isUploadingSolution, setIsUploadingSolution] = useState(false);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [allSections, setAllSections] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+
+  // Fetch initial classes
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const res = await api.get<any>("/classes");
+        if (res && res.data) {
+          setClasses(res.data);
+        }
+      } catch (err) {
+        console.error("Error fetching classes:", err);
+      }
+    };
+    fetchClasses();
+  }, []);
+
+  // Fetch sections and students when class changes
+  useEffect(() => {
+    if (!selectedClassId) {
+      setAllSections([]);
+      setStudents([]);
+      return;
+    }
+
+    const fetchClassData = async () => {
+      try {
+        const [examsRes, studentsRes] = await Promise.all([
+          api.get<any>(`/exams/class/${selectedClassId}`),
+          api.get<any>(`/student-classes/${selectedClassId}`)
+        ]);
+
+        if (examsRes) setAllSections(examsRes);
+        if (studentsRes) {
+          setStudents(studentsRes.map((sc: any) => ({
+            id: sc._id,
+            name: sc.student?.user?.firstName ? `${sc.student.user.firstName} ${sc.student.user.lastName}` : (sc.student?.name || "Unknown")
+          })));
+        }
+      } catch (err) {
+        console.error("Error fetching class data:", err);
+      }
+    };
+
+    fetchClassData();
+  }, [selectedClassId]);
 
   // Derive sections based on selected class
-  const sections = useMemo(() => {
-    return selectedClassId ? CLASS_SECTIONS_DATA[selectedClassId] || [] : [];
-  }, [selectedClassId]);
+  const sections = allSections;
 
   // Derive selected section object
   const selectedSection = useMemo(() => {
-    return sections.find(s => s.id === selectedSectionId);
+    return sections.find((s: any) => s._id === selectedSectionId || s.id === selectedSectionId);
   }, [sections, selectedSectionId]);
 
   const handleStudentUpload = (files: FileList | null) => {
@@ -52,26 +101,82 @@ export default function AnalysisPage() {
   const removeStudentFile = (index: number) =>
     setStudentPapers(studentPapers.filter(((_, i) => i !== index)));
 
-  const startAnalysis = () => {
+  const handleModelSolutionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !files.length || !selectedSectionId) return;
+
+    setIsUploadingSolution(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => formData.append("files", file));
+
+      const uploadRes = await api.upload<any>("/cloudinary/upload", formData);
+      if (!uploadRes.results) return;
+
+      const newImages = uploadRes.results.map((r: any) => ({
+        url: r.cloudinaryUrl,
+        public_id: r.public_id
+      }));
+
+      const currentSection = allSections.find(s => s._id === selectedSectionId || s.id === selectedSectionId);
+      const payload = {
+        solutionImages: [...(currentSection?.solutionImages ?? []), ...newImages]
+      };
+
+      const updatedExam = await api.put<any>(`/exams/${selectedSectionId}`, payload);
+      
+      setAllSections(prev => prev.map(s => {
+          if (s._id === selectedSectionId || s.id === selectedSectionId) {
+              return { ...s, solutionImages: updatedExam.solutionImages };
+          }
+          return s;
+      }));
+    } catch (err) {
+      console.error("Failed to upload model solution", err);
+    } finally {
+      setIsUploadingSolution(false);
+    }
+  };
+
+  const startAnalysis = async () => {
+    if (!isReadyForAnalysis) return;
+
     setIsAnalyzing(true);
-    // Simulation
-    setTimeout(() => {
-      setIsAnalyzing(false);
+    try {
+      const formData = new FormData();
+      studentPapers.forEach(file => formData.append("files", file));
+      formData.append("examId", selectedSectionId.toString());
+      formData.append("studentClassId", selectedStudent);
+
+      const res = await api.upload<any>("/student-class-answers/upload", formData);
+      console.log("Upload analysis result:", res);
+
+      const feedbackRes = await api.post<any>("/feedbacks/generate", {
+          studentClassAnswerId: res._id || res.id
+      });
+      console.log("Feedback generated:", feedbackRes);
+
+      setFeedbackData(feedbackRes);
       setAnalysisComplete(true);
-      setScore(Math.floor(Math.random() * 20) + 75); // Mock score 75-95
-    }, 2500);
+      setScore(feedbackRes.rating || 0);
+    } catch (err) {
+      console.error("Analysis upload failed:", err);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const resetAnalysis = () => {
     setAnalysisComplete(false);
     setStudentPapers([]);
+    setFeedbackData(null);
   };
 
   const isReadyForAnalysis = selectedClassId && selectedSectionId && selectedStudent && studentPapers.length > 0;
 
   return (
     <div className="p-8 bg-background text-primary min-h-screen space-y-8 relative">
-      
+
       {/* Loading Overlay */}
       {isAnalyzing && (
         <div className="fixed inset-0 z-100 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center space-y-6">
@@ -112,8 +217,8 @@ export default function AnalysisPage() {
               className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-secondary/20 appearance-none cursor-pointer disabled:opacity-50"
             >
               <option value="">Select a class</option>
-              {Object.entries(CLASSES_DATA).map(([id, cls]) => (
-                <option key={id} value={id}>{cls.name}</option>
+              {classes.map((cls) => (
+                <option key={cls._id} value={cls._id}>{cls.name}</option>
               ))}
             </select>
             <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
@@ -127,12 +232,12 @@ export default function AnalysisPage() {
             <select
               disabled={!selectedClassId || analysisComplete}
               value={selectedSectionId}
-              onChange={(e) => setSelectedSectionId(Number(e.target.value))}
+              onChange={(e) => setSelectedSectionId(e.target.value)}
               className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-secondary/20 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Select a section</option>
               {sections.map((sec) => (
-                <option key={sec.id} value={sec.id}>{sec.title}</option>
+                <option key={sec._id || sec.id} value={sec._id || sec.id}>{sec.title}</option>
               ))}
             </select>
             <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
@@ -150,8 +255,8 @@ export default function AnalysisPage() {
               className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-secondary/20 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Select a student</option>
-              {MOCK_STUDENTS.map((name) => (
-                <option key={name} value={name}>{name}</option>
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
             <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
@@ -173,14 +278,14 @@ export default function AnalysisPage() {
 
             {selectedSection ? (
               <div className="space-y-4">
-                {selectedSection.modelSolutionName ? (
+                {selectedSection.solutionImages && selectedSection.solutionImages.length > 0 ? (
                   <div className="flex items-center gap-3 bg-secondary/5 border border-secondary/20 rounded-2xl px-4 py-3">
                     <div className="bg-secondary/10 p-2 rounded-xl shrink-0">
                       <CheckCircle size={18} className="text-secondary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-primary truncate">{selectedSection.modelSolutionName}</p>
-                      <p className="text-[10px] text-primary/40 uppercase font-bold tracking-tight">Reference answer key</p>
+                      <p className="text-sm font-bold text-primary truncate">Section Images Attached</p>
+                      <p className="text-[10px] text-primary/40 uppercase font-bold tracking-tight">{selectedSection.solutionImages.length} images as reference</p>
                     </div>
                   </div>
                 ) : (
@@ -189,7 +294,22 @@ export default function AnalysisPage() {
                       <AlertTriangle size={24} className="text-amber-500/60" />
                     </div>
                     <p className="text-xs text-primary/60 font-medium">No model solution found for this section.</p>
-                    <Button variant="outline" className="text-[10px] py-1.5 h-auto px-3">Upload One Now</Button>
+                    {isUploadingSolution ? (
+                      <p className="inline-block text-[10px] text-primary/40 font-bold py-1.5 px-3">Uploading...</p>
+                    ) : (
+                      <label className="inline-block cursor-pointer">
+                        <div className="bg-white border border-primary/20 hover:border-secondary/40 hover:bg-secondary/5 text-primary text-[10px] py-1.5 px-3 rounded-lg font-bold transition-all">
+                          Upload One Now
+                        </div>
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          multiple
+                          className="hidden"
+                          onChange={handleModelSolutionUpload}
+                        />
+                      </label>
+                    )}
                   </div>
                 )}
               </div>
@@ -279,11 +399,11 @@ export default function AnalysisPage() {
               {showUpgrade && (
                 <div className="bg-accent/5 border border-accent/20 rounded-2xl p-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                      <Crown size={20} className="text-accent shrink-0" />
-                      <p className="text-xs font-bold text-primary/70">Bulk analysis and multi-file processing is restricted on Free plan.</p>
+                    <Crown size={20} className="text-accent shrink-0" />
+                    <p className="text-xs font-bold text-primary/70">Bulk analysis and multi-file processing is restricted on Free plan.</p>
                   </div>
                   <Button variant="primary" className="text-[10px] h-auto py-2 px-4 shadow-lg shadow-accent/20 bg-accent border-none">
-                      Upgrade to Pro
+                    Upgrade to Pro
                   </Button>
                 </div>
               )}
@@ -291,52 +411,49 @@ export default function AnalysisPage() {
           ) : (
             /* Analysis Result View */
             <div className="bg-white border-2 border-secondary/20 rounded-3xl p-8 shadow-2xl space-y-8 animate-in fade-in zoom-in duration-500">
-               <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-secondary p-3 rounded-2xl shadow-lg shadow-secondary/30">
-                      <Sparkles size={24} className="text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-black text-primary">Performance Result</h2>
-                      <p className="text-sm text-primary/40 font-bold uppercase tracking-widest">{selectedStudent} · {selectedSection?.title}</p>
-                    </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-secondary p-3 rounded-2xl shadow-lg shadow-secondary/30">
+                    <Sparkles size={24} className="text-white" />
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-primary/30 uppercase tracking-[0.2em] mb-1">Final Score</p>
-                    <div className="text-4xl font-black text-secondary">{score}%</div>
+                  <div>
+                    <h2 className="text-2xl font-black text-primary">Performance Result</h2>
+                    <p className="text-sm text-primary/40 font-bold uppercase tracking-widest">{selectedStudent} · {selectedSection?.title}</p>
                   </div>
-               </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black text-primary/30 uppercase tracking-[0.2em] mb-1">Final Score</p>
+                  <div className="text-4xl font-black text-secondary">{score}%</div>
+                </div>
+              </div>
 
-               <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="bg-green-50/50 border border-green-100 rounded-2xl p-5 space-y-3">
-                     <div className="flex items-center gap-2 text-green-700 font-black text-xs uppercase tracking-widest">
-                        <CheckCircle size={14} /> Key Strengths
-                     </div>
-                     <ul className="text-xs text-primary/70 space-y-2 list-disc pl-4 font-medium">
-                        <li>Excellent application of Newton's 2nd law concepts.</li>
-                        <li>Clear step-by-step vector decomposition.</li>
-                        <li>Strong units and dimensions accuracy.</li>
-                     </ul>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="bg-green-50/50 border border-green-100 rounded-2xl p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-green-700 font-black text-xs uppercase tracking-widest">
+                    <CheckCircle size={14} /> Key Strengths
                   </div>
-                  <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-5 space-y-3">
-                     <div className="flex items-center gap-2 text-amber-700 font-black text-xs uppercase tracking-widest">
-                        <AlertTriangle size={14} /> Focus Areas
-                     </div>
-                     <ul className="text-xs text-primary/70 space-y-2 list-disc pl-4 font-medium">
-                        <li>Slight confusion between mass and weight in Q3.</li>
-                        <li>Intermediate calculation rounding error in Part B.</li>
-                     </ul>
+                  <ul className="text-xs text-primary/70 space-y-2 list-disc pl-4 font-medium">
+                    <li>{feedbackData?.strengths || "Excellent application of concepts."}</li>
+                  </ul>
+                </div>
+                <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-amber-700 font-black text-xs uppercase tracking-widest">
+                    <AlertTriangle size={14} /> Focus Areas
                   </div>
-               </div>
+                  <ul className="text-xs text-primary/70 space-y-2 list-disc pl-4 font-medium">
+                    <li>{feedbackData?.weaknesses || "Observation areas noted during analysis."}</li>
+                  </ul>
+                </div>
+              </div>
 
-               <div className="bg-primary/2 border border-primary/5 rounded-2xl p-6 space-y-3">
-                  <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest">
-                    <Lightbulb size={14} className="text-secondary" /> AI Teacher's Note
-                  </div>
-                  <p className="text-sm text-primary/70 leading-relaxed font-medium">
-                    "Student shows high mastery of mechanics logic. The primary issue is arithmetic precision in multi-step problems. Recommend 10 mins of focus on 'Significant Figures' in the next lesson."
-                  </p>
-               </div>
+              <div className="bg-primary/2 border border-primary/5 rounded-2xl p-6 space-y-3">
+                <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest">
+                  <Lightbulb size={14} className="text-secondary" /> AI Teacher's Note
+                </div>
+                <p className="text-sm text-primary/70 leading-relaxed font-medium">
+                  "{feedbackData?.recommendation || "Student shows high mastery of the subject."}"
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -380,25 +497,25 @@ export default function AnalysisPage() {
           <h2 className="text-xs font-black uppercase tracking-[0.2em] text-primary/30">AI Performance Insights</h2>
           <div className="h-px flex-1 bg-primary/10 ml-6"></div>
         </div>
-        
+
         <div className="grid lg:grid-cols-3 gap-5 text-sm">
           <InsightCard
             variant="success"
             icon={<CheckCircle size={18} />}
             title="Key Strengths"
-            text={analysisComplete ? "Demonstrated deep conceptual understanding of the core subject matter." : "Initial scans will appear here. Select context and student to begin."}
+            text={analysisComplete && feedbackData ? feedbackData.strengths : "Initial scans will appear here. Select context and student to begin."}
           />
           <InsightCard
             variant="warning"
             icon={<AlertTriangle size={18} />}
             title="Common Weaknesses"
-            text={analysisComplete ? "Occasional arithmetic slips in complex calculations observed." : "AI will identify patterns across multiple papers for this section."}
+            text={analysisComplete && feedbackData ? feedbackData.weaknesses : "AI will identify patterns across multiple papers for this section."}
           />
           <InsightCard
             variant="info"
             icon={<Lightbulb size={18} />}
             title="AI Recommendation"
-            text={analysisComplete ? "Focus on rounding rules and step-by-step verification." : "Tailored feedback will be generated based on the model solution."}
+            text={analysisComplete && feedbackData ? feedbackData.recommendation : "Tailored feedback will be generated based on the model solution."}
           />
         </div>
       </div>

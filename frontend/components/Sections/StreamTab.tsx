@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus, Upload, FileText, Brain, X,
   Clipboard, Users, BookOpen,
@@ -9,13 +10,16 @@ import {
 import { ChevronDown, ChevronUp } from "lucide-react";
 import Button from "@/components/UI/Button";
 import { CLASS_SECTIONS_DATA } from "@/data/mockData";
+import api from "@/lib/api";
 
 
 interface Section {
-  id: number;
+  id: any;
   title: string;
   description: string;
-  modelSolutionName?: string;
+  classId: string;
+  examImages?: { url: string; public_id: string }[];
+  solutionImages?: { url: string; public_id: string }[];
 }
 
 interface StreamTabProps {
@@ -25,62 +29,166 @@ interface StreamTabProps {
     description: string;
     code: string;
     studentCount: number;
+    _id: string;
   };
+  classId: string;
 }
-export default function StreamTab({ cls }: StreamTabProps) {
-  const initialSections = CLASS_SECTIONS_DATA[cls.id] || [];
-  const [sections, setSections] = useState<Section[]>(initialSections);
-  const [expandedIds, setExpandedIds] = useState<number[]>(initialSections.map(s => s.id));
+
+export default function StreamTab({ cls, classId }: StreamTabProps) {
+  const [sections, setSections] = useState<Section[]>([]);
+  const [expandedIds, setExpandedIds] = useState<any[]>([]);
 
   const [showAddSection, setShowAddSection] = useState(false);
   const [sectionTitle, setSectionTitle] = useState("");
   const [sectionDesc, setSectionDesc] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const [analyzedSections, setAnalyzedSections] = useState<number[]>([]);
-  const [isBulkAnalyzing, setIsBulkAnalyzing] = useState<number | null>(null);
+  const [analyzedSections, setAnalyzedSections] = useState<any[]>([]);
+  const [isBulkAnalyzing, setIsBulkAnalyzing] = useState<any | null>(null);
 
   const copyCode = () => {
-    navigator.clipboard.writeText(cls.code);
+    navigator.clipboard.writeText(cls._id);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const addSection = () => {
-    if (!sectionTitle.trim()) return;
-    const newSec: Section = { id: Date.now(), title: sectionTitle, description: sectionDesc };
-    setSections((prev) => [...prev, newSec]);
-    setExpandedIds((prev) => [...prev, newSec.id]);
+  const addSection = async () => {
+    if (!sectionTitle.trim() || !cls._id) return;
+
     setSectionTitle("");
     setSectionDesc("");
     setShowAddSection(false);
+
+    try {
+      const res = await api.post<any>("/exams", {
+        title: sectionTitle,
+        description: sectionDesc,
+        class: cls._id,
+      });
+
+      if (!res) return;
+
+      const addNewSection: Section = {
+        id: res._id,
+        title: res.title,
+        description: res.description,
+        classId: res.class,
+        examImages: [],
+        solutionImages: [],
+      };
+
+      setSections((prev) => [...prev, addNewSection]);
+      setExpandedIds((prev) => [...prev, res._id]);
+    } catch (err) {
+      console.log(err);
+    }
   };
 
-  const removeSection = (id: number) =>
+  const removeSection = (id: any) =>
     setSections((prev) => prev.filter((s) => s.id !== id));
 
-  const toggleExpand = (id: number) =>
+  const toggleExpand = (id: any) =>
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
 
-  const handleModelUpload = (sectionId: number, files: FileList | null) => {
+  /** Append multiple files to examImages or solutionImages after uploading to Cloudinary */
+  const handleUpload = async (id: any, files: FileList | null, type: "exam" | "solution") => {
     if (!files?.length) return;
-    setSections((prev) =>
-      prev.map((s) =>
-        s.id === sectionId ? { ...s, modelSolutionName: files[0].name } : s
-      )
-    );
+
+    const formData = new FormData();
+    Array.from(files).forEach(file => formData.append("files", file));
+
+    try {
+      // 1. Upload to Cloudinary via our testing/utility endpoint
+      const uploadRes = await api.upload<any>("/cloudinary/upload", formData);
+      if (!uploadRes.results) return;
+
+      const newImages = uploadRes.results.map((r: any) => ({
+        url: r.cloudinaryUrl,
+        public_id: r.public_id
+      }));
+
+      // 2. Fetch current exam to get existing images
+      const currentSection = sections.find(s => s.id === id);
+      if (!currentSection) return;
+
+      const updatedPayload: any = {};
+      if (type === "solution") {
+        updatedPayload.solutionImages = [...(currentSection.solutionImages ?? []), ...newImages];
+      } else {
+        updatedPayload.examImages = [...(currentSection.examImages ?? []), ...newImages];
+      }
+
+      // 3. Update backend Exam record
+      const updatedExam = await api.put<any>(`/exams/${id}`, updatedPayload);
+
+      // 4. Update local state
+      setSections(prev => prev.map(s => s.id === id ? {
+        ...s,
+        examImages: updatedExam.examImages,
+        solutionImages: updatedExam.solutionImages
+      } : s));
+
+    } catch (err) {
+      console.error("Upload failed", err);
+    }
   };
 
-  const startBulkAnalysis = (sectionId: number) => {
-    if (!sections.find(s => s.id === sectionId)?.modelSolutionName) return;
-    setIsBulkAnalyzing(sectionId);
+  /** Remove a single file by public_id */
+  const removeFile = async (sectionId: any, public_id: string, type: "exam" | "solution") => {
+    try {
+      // 1. Delete from Cloudinary and DB
+      const endpoint = type === "solution" ? "solution-image" : "exam-image";
+      const updatedExam = await api.delete<any>(`/exams/${sectionId}/${endpoint}?public_id=${public_id}`);
+
+      // 2. Update local state
+      setSections(prev => prev.map(s => s.id === sectionId ? {
+        ...s,
+        examImages: updatedExam.examImages,
+        solutionImages: updatedExam.solutionImages
+      } : s));
+    } catch (err) {
+      console.error("Delete failed", err);
+    }
+  };
+
+  const startBulkAnalysis = (id: any) => {
+    const sec = sections.find((s) => s.id === id);
+    if (!sec?.solutionImages?.length) return;
+    setIsBulkAnalyzing(id);
     setTimeout(() => {
       setIsBulkAnalyzing(null);
-      setAnalyzedSections(prev => [...prev, sectionId]);
+      setAnalyzedSections((prev) => [...prev, id]);
     }, 2500);
   };
+
+  useEffect(() => {
+    const fetchExams = async () => {
+      try {
+        const res = await api.get<any>(`/exams/class/${cls._id}`);
+        if (!res) return;
+
+        if (Array.isArray(res)) {
+          const mapped = res.map((item: any) => ({
+            id: item._id,
+            title: item.title,
+            description: item.description,
+            classId: item.class,
+            examImages: item.examImages ?? [],
+            solutionImages: item.solutionImages ?? [],
+          }));
+          setSections(mapped);
+          mapped.forEach((item: any) => {
+            setExpandedIds((prev) => [...prev, item.id]);
+          });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    fetchExams();
+  }, [cls._id]);
 
   return (
     <div className="grid lg:grid-cols-4 gap-6">
@@ -90,7 +198,7 @@ export default function StreamTab({ cls }: StreamTabProps) {
         <div className="bg-white border border-primary/10 rounded-2xl p-4 shadow-sm">
           <p className="text-xs font-bold text-primary/40 uppercase tracking-widest mb-3">Class Code</p>
           <div className="flex items-center justify-between">
-            <span className="font-mono font-bold text-xl text-primary">{cls.code}</span>
+            <span className="font-mono font-bold text-xl text-primary">{cls._id.slice(0, 7)}...</span>
             <button
               onClick={copyCode}
               className="flex items-center gap-1.5 text-xs text-secondary font-semibold hover:opacity-80 transition-opacity"
@@ -156,6 +264,8 @@ export default function StreamTab({ cls }: StreamTabProps) {
           const isExpanded = expandedIds.includes(sec.id);
           const isAnalyzed = analyzedSections.includes(sec.id);
           const isCurrentAnalyzing = isBulkAnalyzing === sec.id;
+          const modelFiles = sec.solutionImages ?? [];
+          const homeworkFiles = sec.examImages ?? [];
 
           return (
             <div key={sec.id} className="bg-white border border-primary/10 rounded-2xl shadow-sm overflow-hidden">
@@ -195,115 +305,175 @@ export default function StreamTab({ cls }: StreamTabProps) {
 
               {isExpanded && (
                 <div className="p-5 space-y-6">
-                  
-                  {/* Bulk Analysis Result Overlay */}
+
+                  {/* Bulk Analysis Result */}
                   {isAnalyzed && (
                     <div className="bg-secondary/5 border-2 border-secondary/20 rounded-2xl p-5 space-y-4 animate-in slide-in-from-top-4 duration-500">
-                       <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                             <div className="bg-secondary p-2 rounded-xl text-white">
-                                <Brain size={18} />
-                             </div>
-                             <div>
-                                <h4 className="text-sm font-black text-primary">Class Performance Summary</h4>
-                                <p className="text-[10px] text-primary/40 font-bold uppercase tracking-tight">AI Generated Insights for {cls.studentCount} Students</p>
-                             </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-secondary p-2 rounded-xl text-white">
+                            <Brain size={18} />
                           </div>
-                          <div className="text-right">
-                             <p className="text-[10px] font-black text-primary/30 uppercase tracking-widest">Class Avg</p>
-                             <p className="text-xl font-black text-secondary">84.2%</p>
+                          <div>
+                            <h4 className="text-sm font-black text-primary">Class Performance Summary</h4>
+                            <p className="text-[10px] text-primary/40 font-bold uppercase tracking-tight">AI Generated Insights for {cls.studentCount} Students</p>
                           </div>
-                       </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-primary/30 uppercase tracking-widest">Class Avg</p>
+                          <p className="text-xl font-black text-secondary">84.2%</p>
+                        </div>
+                      </div>
 
-                       <div className="grid sm:grid-cols-2 gap-4">
-                          <div className="bg-white/60 p-4 rounded-xl border border-secondary/10 space-y-2">
-                             <p className="text-[10px] font-black text-primary/40 uppercase tracking-widest flex items-center gap-2">
-                                <Sparkles size={12} /> Key Strengths
-                             </p>
-                             <p className="text-xs text-primary/70 font-medium">Strong conceptual grasp of vector addition and Newton's baseline laws.</p>
-                          </div>
-                          <div className="bg-white/60 p-4 rounded-xl border border-secondary/10 space-y-2">
-                             <p className="text-[10px] font-black text-amber-600/60 uppercase tracking-widest flex items-center gap-2">
-                                <AlertTriangle size={12} /> Common Challenges
-                             </p>
-                             <p className="text-xs text-primary/70 font-medium">Struggled with multi-step friction problems. 40% Students skipped final units.</p>
-                          </div>
-                       </div>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="bg-white/60 p-4 rounded-xl border border-secondary/10 space-y-2">
+                          <p className="text-[10px] font-black text-primary/40 uppercase tracking-widest flex items-center gap-2">
+                            <Sparkles size={12} /> Key Strengths
+                          </p>
+                          <p className="text-xs text-primary/70 font-medium">Strong conceptual grasp of vector addition and Newton's baseline laws.</p>
+                        </div>
+                        <div className="bg-white/60 p-4 rounded-xl border border-secondary/10 space-y-2">
+                          <p className="text-[10px] font-black text-amber-600/60 uppercase tracking-widest flex items-center gap-2">
+                            <AlertTriangle size={12} /> Common Challenges
+                          </p>
+                          <p className="text-xs text-primary/70 font-medium">Struggled with multi-step friction problems. 40% Students skipped final units.</p>
+                        </div>
+                      </div>
 
-                       <div className="flex items-center gap-3 pt-2">
-                          <Button className="flex-1 text-[10px] font-bold py-2 bg-secondary text-white rounded-xl shadow-lg shadow-secondary/20">Sync Grades to SIS</Button>
-                          <Button variant="outline" className="flex-1 text-[10px] font-bold py-2 rounded-xl">Detailed Class Report</Button>
-                       </div>
+                      <div className="flex items-center gap-3 pt-2">
+                        <Button className="flex-1 text-[10px] font-bold py-2 bg-secondary text-white rounded-xl shadow-lg shadow-secondary/20">Sync Grades to SIS</Button>
+                        <Button variant="outline" className="flex-1 text-[10px] font-bold py-2 rounded-xl">Detailed Class Report</Button>
+                      </div>
                     </div>
                   )}
 
                   <div className="border border-dashed border-primary/15 rounded-xl p-4 text-center">
-                    <p className="text-xs text-primary/40"> {isAnalyzed ? "All student papers analyzed" : "No student submissions yet"}</p>
+                    <p className="text-xs text-primary/40">{isAnalyzed ? "All student papers analyzed" : "No student submissions yet"}</p>
                   </div>
 
+                  {/* Files grid */}
                   <div className="grid sm:grid-cols-2 gap-4">
+
+                    {/* ── Model Solution ── */}
                     <div>
-                      <p className="text-xs font-bold text-primary/40 uppercase tracking-widest mb-2.5">Model Solution</p>
-                      {sec.modelSolutionName ? (
-                        <div className="flex items-center gap-3 bg-secondary/5 border border-secondary/20 rounded-xl px-4 py-3">
-                          <div className="bg-secondary/10 p-2 rounded-lg shrink-0">
-                            <FileText size={16} className="text-secondary" />
+                      <p className="text-xs font-bold text-primary/40 uppercase tracking-widest mb-2.5">
+                        Model Solution
+                        {modelFiles.length > 0 && (
+                          <span className="ml-2 text-secondary normal-case font-semibold">
+                            ({modelFiles.length} file{modelFiles.length > 1 ? "s" : ""})
+                          </span>
+                        )}
+                      </p>
+
+                      <div className="space-y-2">
+                        {/* Existing files */}
+                        {modelFiles.map((img, idx) => (
+                          <div
+                            key={img.public_id || idx}
+                            className="flex items-center gap-3 bg-secondary/5 border border-secondary/20 rounded-xl px-4 py-2.5 group"
+                          >
+                            <div className="bg-secondary/10 p-1.5 rounded-lg shrink-0">
+                              <FileText size={14} className="text-secondary" />
+                            </div>
+                            <p className="text-sm font-semibold text-primary flex-1 truncate">
+                              <a href={img.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                {img.url.split("/").pop()}
+                              </a>
+                            </p>
+                            <button
+                              onClick={() => removeFile(sec.id, img.public_id, "solution")}
+                              className="opacity-0 group-hover:opacity-100 text-primary/30 hover:text-red-500 transition-all p-1 rounded-lg hover:bg-red-50 shrink-0"
+                            >
+                              <X size={13} />
+                            </button>
                           </div>
-                          <p className="text-sm font-semibold text-primary flex-1 truncate">{sec.modelSolutionName}</p>
-                          <CheckCircle size={16} className="text-secondary shrink-0" />
-                        </div>
-                      ) : (
+                        ))}
+
+                        {/* Upload more / first upload */}
                         <label className="flex items-center gap-3 border border-dashed border-primary/20 rounded-xl px-4 py-3 cursor-pointer hover:border-secondary/40 hover:bg-secondary/5 transition-all group">
                           <div className="bg-primary/5 group-hover:bg-secondary/10 p-2 rounded-lg transition-colors shrink-0">
                             <Upload size={15} className="text-primary/40 group-hover:text-secondary transition-colors" />
                           </div>
                           <span className="text-sm text-primary/50 group-hover:text-primary transition-colors">
-                            Upload model solution · <span className="text-secondary font-semibold">Browse</span>
+                            {modelFiles.length > 0
+                              ? <>Add more · <span className="text-secondary font-semibold">Browse</span></>
+                              : <>Upload model solution · <span className="text-secondary font-semibold">Browse</span></>
+                            }
                           </span>
                           <input
                             type="file"
                             accept=".pdf,.png,.jpg,.jpeg"
+                            multiple
                             className="hidden"
-                            onChange={(e) => handleModelUpload(sec.id, e.target.files)}
+                            onChange={(e) => handleUpload(sec.id, e.target.files, "solution")}
                           />
                         </label>
-                      )}
+                      </div>
                     </div>
 
+                    {/* ── Section Homework ── */}
                     <div>
-                      <p className="text-xs font-bold text-primary/40 uppercase tracking-widest mb-2.5">Section Homework</p>
-                      {sec.modelSolutionName ? (
-                        <div className="flex items-center gap-3 bg-secondary/5 border border-secondary/20 rounded-xl px-4 py-3">
-                          <div className="bg-secondary/10 p-2 rounded-lg shrink-0">
-                            <FileText size={16} className="text-secondary" />
+                      <p className="text-xs font-bold text-primary/40 uppercase tracking-widest mb-2.5">
+                        Section Homework
+                        {homeworkFiles.length > 0 && (
+                          <span className="ml-2 text-secondary normal-case font-semibold">
+                            ({homeworkFiles.length} file{homeworkFiles.length > 1 ? "s" : ""})
+                          </span>
+                        )}
+                      </p>
+
+                      <div className="space-y-2">
+                        {/* Existing files */}
+                        {homeworkFiles.map((img, idx) => (
+                          <div
+                            key={img.public_id || idx}
+                            className="flex items-center gap-3 bg-secondary/5 border border-secondary/20 rounded-xl px-4 py-2.5 group"
+                          >
+                            <div className="bg-secondary/10 p-1.5 rounded-lg shrink-0">
+                              <FileText size={14} className="text-secondary" />
+                            </div>
+                            <p className="text-sm font-semibold text-primary flex-1 truncate">
+                              <a href={img.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                {img.url.split("/").pop()}
+                              </a>
+                            </p>
+                            <button
+                              onClick={() => removeFile(sec.id, img.public_id, "exam")}
+                              className="opacity-0 group-hover:opacity-100 text-primary/30 hover:text-red-500 transition-all p-1 rounded-lg hover:bg-red-50 shrink-0"
+                            >
+                              <X size={13} />
+                            </button>
                           </div>
-                          <p className="text-sm font-semibold text-primary flex-1 truncate">{sec.modelSolutionName}</p>
-                          <CheckCircle size={16} className="text-secondary shrink-0" />
-                        </div>
-                      ) : (
+                        ))}
+
+                        {/* Upload more / first upload */}
                         <label className="flex items-center gap-3 border border-dashed border-primary/20 rounded-xl px-4 py-3 cursor-pointer hover:border-secondary/40 hover:bg-secondary/5 transition-all group">
                           <div className="bg-primary/5 group-hover:bg-secondary/10 p-2 rounded-lg transition-colors shrink-0">
                             <Upload size={15} className="text-primary/40 group-hover:text-secondary transition-colors" />
                           </div>
                           <span className="text-sm text-primary/50 group-hover:text-primary transition-colors">
-                            Upload Section Homework · <span className="text-secondary font-semibold">Browse</span>
+                            {homeworkFiles.length > 0
+                              ? <>Add more · <span className="text-secondary font-semibold">Browse</span></>
+                              : <>Upload homework · <span className="text-secondary font-semibold">Browse</span></>
+                            }
                           </span>
                           <input
                             type="file"
                             accept=".pdf,.png,.jpg,.jpeg"
+                            multiple
                             className="hidden"
-                            onChange={(e) => handleModelUpload(sec.id, e.target.files)}
+                            onChange={(e) => handleUpload(sec.id, e.target.files, "exam")}
                           />
                         </label>
-                      )}
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 pt-2 border-t border-primary/8">
                     <Button
                       onClick={() => startBulkAnalysis(sec.id)}
-                      disabled={!sec.modelSolutionName || isCurrentAnalyzing || isAnalyzed}
-                      className={`flex items-center gap-2 bg-secondary text-xs font-bold px-6 py-3 rounded-xl hover:opacity-90 transition-all shadow-md shadow-secondary/30 ${(!sec.modelSolutionName || isCurrentAnalyzing || isAnalyzed) ? "opacity-40 cursor-not-allowed grayscale" : "hover:scale-[1.02]"}`}
+                      disabled={!modelFiles.length || isCurrentAnalyzing || isAnalyzed}
+                      className={`flex items-center gap-2 bg-secondary text-xs font-bold px-6 py-3 rounded-xl hover:opacity-90 transition-all shadow-md shadow-secondary/30 ${(!modelFiles.length || isCurrentAnalyzing || isAnalyzed) ? "opacity-40 cursor-not-allowed grayscale" : "hover:scale-[1.02]"}`}
                     >
                       {isCurrentAnalyzing ? (
                         <><Brain size={16} className="animate-spin" /> Analyzing Class...</>

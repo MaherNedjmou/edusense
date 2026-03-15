@@ -1,5 +1,5 @@
 "use client";
-
+import { useRefresh_class } from "@/store/useStore";
 import { useState, useEffect } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import FormCreateClass from "@/components/Forms/FormCreateClass";
@@ -9,20 +9,21 @@ import api from "@/lib/api";
 import { useStore } from "@/store/useStore";
 
 export default function ClassesPage() {
-  const [classes, setClasses] = useState<any[]>([]);
+  // const [classes, setClasses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
   const setData = useStore(state => state.setData);
   const getData = useStore(state => state.getData);
+  const classes = getData("classes") as any[] || [];
 
   useEffect(() => {
-    const user = getData("user");
+    
     api.get<{ data: any[] }>("/classes/my")
       .then(res => {
         setData("classes", res.data);
-        if (res.data) setClasses(res.data);
+        if (res.data) setData("classes", res.data); //setClasses(res.data);
       })
       .catch(err => console.error("Error fetching classes:", err))
       .finally(() => setIsLoading(false));
@@ -86,7 +87,7 @@ export default function ClassesPage() {
       {showCreate && (
         <FormCreateClass
           onClose={() => setShowCreate(false)}
-          onClassCreated={(newClass) => setClasses((prev) => [newClass, ...prev])}
+          onClassCreated={(newClass) => setData("classes", [newClass, ...classes])}
         />
       )}
 

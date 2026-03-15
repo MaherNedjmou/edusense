@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { CLASSES_DATA } from "@/data/classesData";
+// import { CLASSES_DATA } from "@/data/classesData";
 import StreamTab from "@/components/Sections/StreamTab";
 import PeopleTab from "@/components/Sections/PeopleTab";
+import { useStore } from "@/store/useStore";
 
 type Tab = "stream" | "students";
 
@@ -18,7 +19,10 @@ const TABS: { key: Tab; label: string }[] = [
 export default function ClassDetailPage() {
   const params = useParams();
   const class_id = params["class_id"] as string;
-  const cls = CLASSES_DATA[class_id];
+
+  const getData = useStore(state => state.getData);
+  const classes = getData("classes") as any[] || [];
+  const cls = classes.find((cls) => cls._id === class_id);
 
   const [activeTab, setActiveTab] = useState<Tab>("stream");
 
@@ -89,8 +93,8 @@ export default function ClassDetailPage() {
 
       {/* Tab content */}
       <div className="max-w-6xl mx-auto px-6 py-6">
-        {activeTab === "stream" && <StreamTab cls={{ id: class_id, ...cls }} />}
-        {activeTab === "students" && <PeopleTab cls={cls} />}
+        {activeTab === "stream" && <StreamTab cls={{ id: class_id, ...cls }} classId={class_id}/>}
+        {activeTab === "students" && <PeopleTab cls={{ id: class_id, ...cls }} classId={class_id}/>}
       </div>
 
     </div>

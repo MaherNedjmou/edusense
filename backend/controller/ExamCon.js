@@ -1,4 +1,5 @@
 const Exam = require("../model/Exam");
+const { deleteFileFromCloudinary } = require("../controller/cloudinary");
 
 // CREATE
 const createExam = async (req, res) => {
@@ -37,13 +38,25 @@ const getExamById = async (req, res) => {
     }
 };
 
+// GET EXAMS BY CLASS
+const getExamsByClass = async (req, res) => {
+    try {
+        const exams = await Exam.find({ class: req.params.classId })
+            .populate("class");
+
+        res.json(exams);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 // UPDATE
 const updateExam = async (req, res) => {
     try {
         const exam = await Exam.findByIdAndUpdate(
             req.params.id,
             req.body,
-            { new: true }
+            { returnDocument: "after" }
         );
 
         if (!exam) {
@@ -56,16 +69,71 @@ const updateExam = async (req, res) => {
     }
 };
 
+
 // DELETE
 const deleteExam = async (req, res) => {
     try {
-        const exam = await Exam.findByIdAndDelete(req.params.id);
-
+        const exam = await Exam.findById(req.params.id);
         if (!exam) {
             return res.status(404).json({ message: "Exam not found" });
         }
 
+        // Delete all images from Cloudinary
+        const allImages = [...exam.examImages, ...exam.solutionImages];
+        for (const img of allImages) {
+            if (img.public_id) {
+                await deleteFileFromCloudinary(img.public_id);
+            }
+        }
+
+        await Exam.findByIdAndDelete(req.params.id);
         res.json({ message: "Exam deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// DELETE INDIVIDUAL EXAM IMAGE
+const deleteExamImage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { public_id } = req.query;
+        if (!public_id) return res.status(400).json({ message: "public_id is required" });
+
+        const exam = await Exam.findById(id);
+        if (!exam) return res.status(404).json({ message: "Exam not found" });
+
+        // Remove from Cloudinary
+        await deleteFileFromCloudinary(public_id);
+
+        // Remove from DB
+        exam.examImages = exam.examImages.filter(img => img.public_id !== public_id);
+        await exam.save();
+
+        res.json(exam);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// DELETE INDIVIDUAL SOLUTION IMAGE
+const deleteSolutionImage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { public_id } = req.query;
+        if (!public_id) return res.status(400).json({ message: "public_id is required" });
+
+        const exam = await Exam.findById(id);
+        if (!exam) return res.status(404).json({ message: "Exam not found" });
+
+        // Remove from Cloudinary
+        await deleteFileFromCloudinary(public_id);
+
+        // Remove from DB
+        exam.solutionImages = exam.solutionImages.filter(img => img.public_id !== public_id);
+        await exam.save();
+
+        res.json(exam);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -75,6 +143,9 @@ module.exports = {
     createExam,
     getExams,
     getExamById,
+    getExamsByClass,
     updateExam,
-    deleteExam
+    deleteExam,
+    deleteExamImage,
+    deleteSolutionImage
 };

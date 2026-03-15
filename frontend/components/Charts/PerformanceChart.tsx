@@ -10,10 +10,12 @@ import {
 } from "chart.js";
 
 Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
-import { CHART_DATA } from "@/data/mockData";
 
+interface PerformanceChartProps {
+  data: number[];
+}
 
-export default function PerformanceChart() {
+export default function PerformanceChart({ data }: PerformanceChartProps) {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -22,10 +24,10 @@ export default function PerformanceChart() {
     const chart = new Chart(chartRef.current, {
       type: "doughnut",
       data: {
-        labels: CHART_DATA.performance.labels,
+        labels: ["0-50", "50-70", "70-85", "85-100"],
         datasets: [
           {
-            data: CHART_DATA.performance.data,
+            data: data,
             backgroundColor: [
               '#10B981', // Sage Emerald
               '#F59E0B', // Amber Gold
@@ -52,7 +54,7 @@ export default function PerformanceChart() {
     });
 
     return () => chart.destroy();
-  }, []);
+  }, [data]);
 
   return <canvas ref={chartRef} />;
 }

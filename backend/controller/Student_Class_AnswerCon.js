@@ -1,4 +1,6 @@
 const StudentClassAnswer = require("../model/Student_Class_Answer");
+const { v2: cloudinary } = require("cloudinary");
+const fs = require("fs");
 
 // CREATE
 const createAnswer = async (req, res) => {
@@ -58,10 +60,47 @@ const deleteAnswer = async (req, res) => {
     }
 };
 
+// UPLOAD STUDENT ANSWER
+const uploadStudentAnswer = async (req, res) => {
+    const { examId, studentClassId } = req.body;
+    const files = req.files;
+
+    if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    try {
+        const results = [];
+        for (const file of files) {
+            const resCloud = await cloudinary.uploader.upload(file.path, {
+                folder: "student_answers",
+            });
+            results.push({
+                url: resCloud.secure_url,
+                public_id: resCloud.public_id,
+            });
+            fs.unlinkSync(file.path);
+        }
+
+        const answer = await StudentClassAnswer.create({
+            exam: examId,
+            studentClass: studentClassId,
+            answers: results,
+            submittedAt: new Date()
+        });
+
+        res.json(answer);
+    } catch (err) {
+        console.error("Upload error:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 module.exports = {
     createAnswer,
     getAnswers,
     getAnswerById,
     updateAnswer,
-    deleteAnswer
+    deleteAnswer,
+    uploadStudentAnswer
 };
