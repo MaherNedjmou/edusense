@@ -19,6 +19,7 @@ export default function DashboardLayout({
         <div className="flex min-h-screen ">
           {/* Sidebar */}
           <TeacherSidebar />
+          
           {/* Main Content */}
           <main className="flex-1 lg:ml-64 bg-background pt-16 lg:pt-0">
             {children}

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import {
-  Upload, FileText, Brain, Sparkles, Crown, X,
-  CheckCircle, Lightbulb, AlertTriangle, ChevronDown,
-  Users, BookOpen, GraduationCap
+import { useState, useMemo, useRef } from "react";
+import { 
+  Upload, FileText, Brain, Sparkles, Crown, X, 
+  CheckCircle, Lightbulb, AlertTriangle, ChevronDown, 
+  Users, BookOpen, GraduationCap, Plus 
 } from "lucide-react";
 import Button from "@/components/UI/Button";
 import InsightCard from "@/components/UI/InsightCard";
@@ -18,7 +18,8 @@ export default function AnalysisPage() {
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [studentPapers, setStudentPapers] = useState<File[]>([]);
   const [showUpgrade, setShowUpgrade] = useState(false);
-
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  
   // New States for Result Flow
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
@@ -178,17 +179,17 @@ export default function AnalysisPage() {
 
       {/* Loading Overlay */}
       {isAnalyzing && (
-        <div className="fixed inset-0 z-[100] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center space-y-6">
-          <div className="relative">
-            <div className="absolute inset-0 bg-secondary/20 rounded-full animate-ping"></div>
-            <div className="bg-secondary p-8 rounded-full shadow-2xl relative">
-              <Brain size={48} className="text-white animate-pulse" />
-            </div>
-          </div>
-          <div className="text-center space-y-1">
-            <h2 className="text-2xl font-black text-primary">AI is Analyzing...</h2>
-            <p className="text-primary/40 font-bold uppercase tracking-widest text-xs">Scanning {studentPapers[0]?.name} against model solution</p>
-          </div>
+        <div className="fixed inset-0 z-100 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center space-y-6">
+           <div className="relative">
+              <div className="absolute inset-0 bg-secondary/20 rounded-full animate-ping"></div>
+              <div className="bg-secondary p-8 rounded-full shadow-2xl relative">
+                <Brain size={48} className="text-white animate-pulse" />
+              </div>
+           </div>
+           <div className="text-center space-y-1">
+              <h2 className="text-2xl font-black text-primary">AI is Analyzing...</h2>
+              <p className="text-primary/40 font-bold uppercase tracking-widest text-xs">Scanning {studentPapers[0]?.name} against model solution</p>
+           </div>
         </div>
       )}
 
@@ -263,11 +264,11 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-
-        {/* Left Column: Model Solution Info & Actions */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white border border-primary/10 rounded-3xl p-6 shadow-sm space-y-5">
+      <div className="grid lg:grid-cols-2 gap-8">
+        
+        {/* Left Card: Model Solution Info */}
+        <div className="space-y-6 min-h-40">
+          <div className=" bg-white border border-primary/10 rounded-3xl p-6 shadow-sm space-y-5">
             <div className="flex items-center gap-3">
               <div className="bg-primary/5 p-2.5 rounded-2xl">
                 <FileText size={20} className="text-primary/60" />
@@ -319,41 +320,12 @@ export default function AnalysisPage() {
             )}
           </div>
 
-          {!analysisComplete ? (
-            <Button
-              variant="primary"
-              onClick={startAnalysis}
-              disabled={!isReadyForAnalysis}
-              className="w-full py-6 rounded-2xl shadow-xl shadow-secondary/20"
-            >
-              <Sparkles size={20} />
-              Generate AI Insights
-            </Button>
-          ) : (
-            <div className="space-y-3">
-              <Button
-                variant="primary"
-                onClick={resetAnalysis}
-                className="w-full py-6 rounded-2xl shadow-xl shadow-secondary/20"
-              >
-                <CheckCircle size={20} />
-                Store Result
-              </Button>
-              <Button
-                variant="outline"
-                onClick={resetAnalysis}
-                className="w-full py-4 rounded-2xl"
-              >
-                Discard Result
-              </Button>
-            </div>
-          )}
         </div>
 
-        {/* Right Column: Upload Student Paper or Result View */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Right Card: Upload Student Paper or Result View */}
+        <div className="space-y-6 min-h-40">
           {!analysisComplete ? (
-            <div className="bg-white border border-primary/10 rounded-3xl p-8 shadow-sm space-y-6">
+            <div className=" bg-white border border-primary/10 rounded-3xl p-8 shadow-sm space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="bg-secondary/10 p-3 rounded-2xl">
@@ -374,41 +346,56 @@ export default function AnalysisPage() {
               <label
                 onDrop={handleStudentDrop}
                 onDragOver={(e) => e.preventDefault()}
-                className="flex flex-col items-center justify-center border-2 border-dashed border-primary/10 rounded-3xl p-16 cursor-pointer hover:border-secondary/40 hover:bg-secondary/5 transition-all group relative overflow-hidden"
+                className="flex flex-col items-center justify-center border-2 border-dashed border-primary/10 rounded-3xl p-5 cursor-pointer hover:border-secondary/40 hover:bg-secondary/5 transition-all group relative overflow-hidden"
               >
-                <div className="bg-primary/5 group-hover:bg-secondary/10 p-6 rounded-3xl mb-4 transition-colors">
-                  <Upload size={32} className="text-primary/40 group-hover:text-secondary transition-colors" />
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-lg font-bold text-primary group-hover:text-secondary transition-colors">
-                    Drop file here or <span className="text-secondary">browse</span>
-                  </p>
-                  <p className="text-sm text-primary/30 font-medium">Supports PDF, PNG, JPG (Max 10MB)</p>
-                </div>
-                <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden"
-                  onChange={(e) => handleStudentUpload(e.target.files)} />
-              </label>
-
-              {studentPapers.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {studentPapers.map((file, index) => (
-                    <div key={index} className="flex items-center gap-3 bg-primary/2 border border-primary/5 rounded-2xl p-3 relative group hover:bg-white hover:shadow-md transition-all">
-                      <div className="bg-secondary/10 p-2 rounded-xl shrink-0">
-                        <FileText size={18} className="text-secondary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-primary truncate">{file.name}</p>
-                        <p className="text-[10px] text-primary/40">{(file.size / 1024).toFixed(1)} KB</p>
-                      </div>
-                      <button onClick={() => removeStudentFile(index)}
-                        className="absolute -top-2 -right-2 bg-white text-primary border border-primary/10 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-50 hover:text-red-500">
-                        <X size={12} />
+                {studentPapers.length === 0 ? (
+                  <>
+                    <div className="bg-primary/5 group-hover:bg-secondary/10 p-6 rounded-3xl mb-4 transition-colors">
+                      <Upload size={32} className="text-primary/40 group-hover:text-secondary transition-colors" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-lg font-bold text-primary group-hover:text-secondary transition-colors">
+                        Drop file here or <span className="text-secondary">browse</span>
+                      </p>
+                      <p className="text-sm text-primary/30 font-medium">Supports PDF, PNG, JPG (Max 10MB)</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full">
+                    <div className="flex items-center justify-between px-2 mb-2">
+                      <span className="text-xs font-bold text-primary/70">{studentPapers.length} file(s) attached</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                        className="inline-flex items-center gap-1 text-primary/70 hover:text-secondary text-sm font-bold"
+                      >
+                        <Plus size={14} /> Add another
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md">
+                      {studentPapers.map((file, index) => (
+                        <div key={index} className="flex items-center gap-3 bg-primary/2 border border-primary/5 rounded-2xl p-2 relative group hover:bg-white hover:shadow-md transition-all">
+                          <div className="bg-secondary/10 p-2 rounded-xl shrink-0">
+                            <FileText size={16} className="text-secondary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-primary truncate">{file.name}</p>
+                            <p className="text-[10px] text-primary/40">{(file.size / 1024).toFixed(1)} KB</p>
+                          </div>
+                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeStudentFile(index); }}
+                            className="absolute -top-2 -right-2 bg-white text-primary border border-primary/10 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-50 hover:text-red-500">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
+                <input type="file" ref={fileInputRef} multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden"
+                  onChange={(e) => handleStudentUpload(e.target.files)} />
+              </label>
+              
               {showUpgrade && (
                 <div className="bg-accent/5 border border-accent/20 rounded-2xl p-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -470,6 +457,38 @@ export default function AnalysisPage() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="flex justify-center mt-6">
+        {!analysisComplete ? (
+          <Button 
+            variant="primary" 
+            onClick={startAnalysis}
+            disabled={!isReadyForAnalysis}
+            className="max-w-md w-full py-4 rounded-2xl"
+          >
+            <Sparkles size={20} />
+            Generate AI Insights
+          </Button>
+        ) : (
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button 
+              variant="primary" 
+              onClick={resetAnalysis}
+              className="py-4 px-8 rounded-2xl"
+            >
+              <CheckCircle size={20} />
+              Store Result
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={resetAnalysis}
+              className="py-4 px-8 rounded-2xl"
+            >
+              Discard Result
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Insights Placeholder */}

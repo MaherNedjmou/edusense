@@ -1,96 +1,118 @@
 "use client";
 
-import React, { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Settings, 
-  LogOut, 
-  Menu, 
-  X, 
-  ChevronRight,
-  GraduationCap
-} from "lucide-react";
+import { Home, NotebookPen, Package, User, LogOut, Menu, X } from "lucide-react";
 
-const NAVIGATION_ITEMS = [
-  { name: "Dashboard", href: "/student", icon: LayoutDashboard },
-  { name: "My Classes", href: "/student/classes", icon: GraduationCap },
-  { name: "Global Tasks", href: "/student/tasks", icon: BookOpen },
-  { name: "Settings", href: "/student/settings", icon: Settings },
-];
-
-export default function StudentSidebar() {
-  const pathname = usePathname();
+const DashboardSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  const toggleSidebar = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const closeSidebar = () => {
+    setIsOpen(false);
+  };
+
+  const navLinks = [
+    { href: "/student", label: "Home", icon: Home },
+    { href: "/student/classes", label: "Classes", icon: Package },
+    { href: "/student/tasks", label: "Tasks", icon: NotebookPen },
+    { href: "/student/profile", label: "Profile", icon: User },
+  ];
 
   return (
     <>
-      {/* Mobile Toggle */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white border border-primary/10 rounded-xl shadow-sm text-primary"
-      >
-        {isOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-background shadow-md px-4 flex items-center justify-between">
+        <button
+          onClick={toggleSidebar}
+          className="p-2 text-primary hover:bg-secondary/20 hover:cursor-pointer rounded transition"
+          aria-label="Toggle Menu"
+        >
+          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+        
+        {/* Username & avatar */}
+        <Link href="/student/profile" className="flex items-center gap-3">
+          <span className="text-sm font-medium text-primary">John Doe</span>
+          <div className="w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center text-primary font-bold">JD</div>
+        </Link>
+      </div>
 
-      {/* Sidebar Overlay */}
+      {/* Overlay for mobile */}
       {isOpen && (
-        <div 
-          onClick={() => setIsOpen(false)}
-          className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+        <div
+          className="lg:hidden fixed inset-0 backdrop-blur-sm z-30"
+          onClick={closeSidebar}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-primary/5 flex flex-col transition-transform duration-300 lg:translate-x-0
-        ${isOpen ? "translate-x-0" : "-translate-x-full"}
-      `}>
-        <div className="p-6">
-          <Link href="/student" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-secondary rounded-xl flex items-center justify-center text-white shadow-lg shadow-secondary/30">
-              <GraduationCap size={18} />
-            </div>
-            <span className="font-bold text-xl tracking-tight text-primary">EduSense</span>
-          </Link>
-        </div>
+      <aside
+        className={`
+          fixed left-0 z-40
+          w-64 bg-background
+          /* on small screens push below top bar and shrink height */
+          top-16 bottom-0 lg:top-0 lg:h-screen h-[calc(100vh-4rem)]
+          shadow-2xl flex flex-col p-6
+          transform transition-transform duration-200 ease-in-out
+          ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        `}
+      >
 
-        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
-          <p className="px-3 text-[10px] font-bold text-primary/30 uppercase tracking-[0.2em] mb-4">Student Portal</p>
-          
-          {NAVIGATION_ITEMS.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
+        {/* Username & avatar */}
+        <Link href="/student/profile" className="hidden lg:flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 rounded-full bg-gray-500/20 flex items-center justify-center text-primary font-bold">JD</div>
+          <span className="font-medium text-primary">John Doe</span>
+        </Link>
+
+        {/* Navigation Links */}
+        <nav className="flex flex-col gap-2">
+          {navLinks.map((link) => {
+            const Icon = link.icon;
+            const isActive = pathname === link.href;
             
             return (
               <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
+                key={link.href}
+                href={link.href}
+                onClick={closeSidebar}
                 className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all group
-                  ${isActive 
-                    ? "bg-secondary/10 text-secondary shadow-sm shadow-secondary/5" 
-                    : "text-primary/50 hover:bg-primary/5 hover:text-primary"}
+                  flex items-center gap-3 px-4 py-3 rounded-lg 
+                  transition group relative font-semibold
+                  ${
+                    isActive
+                      ? "text-secondary bg-white shadow-md hover:shadow-lg"
+                      : "text-primary hover:text-secondary hover:bg-white/50 hover:shadow-md"
+                  }
                 `}
               >
-                <Icon size={18} className={isActive ? "text-secondary" : "text-primary/40 group-hover:text-primary"} />
-                <span className="flex-1">{item.name}</span>
-                {isActive && <ChevronRight size={14} className="text-secondary opacity-50" />}
+                <Icon className={`w-5 h-5 transition-transform ${isActive ? "scale-110" : "group-hover:scale-110"}`} />
+                <span>{link.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-primary/5 mt-auto">
-          <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-red-500/70 hover:bg-red-50 hover:text-red-500 transition-all group">
-            <LogOut size={18} className="text-red-500/40 group-hover:text-red-500" />
-            <span>Sign Out</span>
-          </button>
-        </div>
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Logout Button */}
+        <Link
+          href="/login"
+          onClick={closeSidebar}
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-linear-to-r from-red-400 to-red-500/90 text-white font-semibold rounded-lg hover:from-red-500/90 hover:to-red-500 transition shadow-md hover:shadow-lg"
+        >
+          <LogOut className="w-5 h-5" />
+          <span>Logout</span>
+        </Link>
       </aside>
     </>
   );
-}
+};
+
+export default DashboardSidebar;
