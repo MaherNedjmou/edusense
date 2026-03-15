@@ -14,15 +14,17 @@ import {
 Chart.register(
   BarController,
   BarElement,
-  CategoryScale,
   LinearScale,
   Tooltip,
   Legend
 );
-import { CHART_DATA } from "@/data/mockData";
 
+interface StrengthWeaknessChartProps {
+  pass: number;
+  fail: number;
+}
 
-export default function StrengthWeaknessChart() {
+export default function StrengthWeaknessChart({ pass, fail }: StrengthWeaknessChartProps) {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -31,19 +33,13 @@ export default function StrengthWeaknessChart() {
     const chart = new Chart(chartRef.current, {
       type: "bar",
       data: {
-        labels: CHART_DATA.strengthWeakness.labels,
+        labels: ["Pass", "Fail/Needs Improvement"],
         datasets: [
           {
-            label: "Strength",
-            data: CHART_DATA.strengthWeakness.strengths,
-            backgroundColor: '#10B981',
-            borderColor: '#10B981'
-          },
-          {
-            label: "Weakness",
-            data: CHART_DATA.strengthWeakness.weaknesses,
-            backgroundColor: '#F59E0B',
-            borderColor: '#F59E0B'
+            label: "Students",
+            data: [pass, fail],
+            backgroundColor: ['#10B981', '#F59E0B'],
+            borderColor: ['#10B981', '#F59E0B']
           }
         ]
       },
@@ -69,7 +65,7 @@ export default function StrengthWeaknessChart() {
     });
 
     return () => chart.destroy();
-  }, []);
+  }, [pass, fail]);
 
   return <canvas ref={chartRef} />;
 }

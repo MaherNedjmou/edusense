@@ -15,16 +15,28 @@ export default function TeacherDashboard() {
     sectionsCount: 0,
     analysisCount: 0,
   });
+  
+  const [analyticsData, setAnalyticsData] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    api.get<{ data: any }>("/teachers/stats")
-      .then(res => {
-        if (res.data) setStats(res.data);
-      })
-      .catch(err => console.error("Error fetching stats:", err))
-      .finally(() => setIsLoading(false));
+    Promise.all([
+      api.get<{ data: any }>("/teachers/stats"),
+      api.get<{ data: any[] }>("/teachers/analytics")
+    ])
+    .then(([statsRes, analyticsRes]) => {
+      if (statsRes.data) setStats(statsRes.data);
+      if (analyticsRes.data && analyticsRes.data.length > 0) {
+        setAnalyticsData(analyticsRes.data);
+        setSelectedClassId(analyticsRes.data[0].classId);
+      }
+    })
+    .catch(err => console.error("Error fetching dashboard data:", err))
+    .finally(() => setIsLoading(false));
   }, []);
+
+  const selectedAnalytics = analyticsData.find(a => a.classId === selectedClassId) || null;
 
   const getIcon = (label: string) => {
     switch (label) {
@@ -78,34 +90,82 @@ export default function TeacherDashboard() {
       )}
 
       {/* Charts Section */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
-          <h2 className="font-semibold mb-4 text-primary">Submissions Over Time</h2>
-          <SubmissionsChart />
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
-          <h2 className="font-semibold mb-4 text-primary">Performance Distribution</h2>
-          <PerformanceDistributionChart />
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
-          <h2 className="font-semibold mb-4 text-primary">Strengths vs Weaknesses</h2>
-          <StrengthWeaknessChart />
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
-          <h2 className="font-semibold mb-6 text-primary">Recent Analyses</h2>
-
-          <div className="space-y-4">
-            {RECENT_ACTIVITIES.map((activity, i) => (
-              <ActivityRow key={i} {...activity} />
+      {analyticsData.length > 0 && (
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-bold text-primary">Select Class: </label>
+          <select 
+            value={selectedClassId} 
+            onChange={e => setSelectedClassId(e.target.value)}
+            className="border border-primary/20 rounded-xl px-4 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-secondary cursor-pointer bg-white"
+          >
+            {analyticsData.map(a => (
+              <option key={a.classId} value={a.classId}>{a.className}</option>
             ))}
-          </div>
+          </select>
         </div>
-      </div>
+      )}
+
+      {selectedAnalytics ? (
+        <>
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
+              <h2 className="font-semibold mb-4 text-primary">Student Exam Score per Class</h2>
+              <SubmissionsChart data={selectedAnalytics.submissions} />
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
+              <h2 className="font-semibold mb-4 text-primary">Pass vs Fail Rate (Top & Low Performers)</h2>
+              <StrengthWeaknessChart pass={selectedAnalytics.passFail.pass} fail={selectedAnalytics.passFail.fail} />
+              
+              <div className="mt-6 flex flex-col gap-4">
+                <div className="bg-green-50/50 p-3 rounded-lg border border-green-100">
+                  <p className="text-xs font-bold text-green-700 uppercase mb-2">Top Performers</p>
+                  {selectedAnalytics.topStudents.length > 0 ? selectedAnalytics.topStudents.map((s: any, i: number) => (
+                    <div key={i} className="flex justify-between text-xs py-1 text-primary/70">
+                      <span>{s.studentName} ({s.examTitle})</span>
+                      <span className="font-bold">{s.score}%</span>
+                    </div>
+                  )) : <p className="text-xs text-primary/40 italic">Not enough data</p>}
+                </div>
+                <div className="bg-amber-50/50 p-3 rounded-lg border border-amber-100">
+                  <p className="text-xs font-bold text-amber-700 uppercase mb-2">Requires Attention</p>
+                  {selectedAnalytics.lowestStudents.length > 0 ? selectedAnalytics.lowestStudents.map((s: any, i: number) => (
+                    <div key={i} className="flex justify-between text-xs py-1 text-primary/70">
+                      <span>{s.studentName} ({s.examTitle})</span>
+                      <span className="font-bold">{s.score}%</span>
+                    </div>
+                  )) : <p className="text-xs text-primary/40 italic">Not enough data</p>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10 h-full flex flex-col">
+              <h2 className="font-semibold mb-4 text-primary">Performance Distribution</h2>
+              <div className="flex-1 flex items-center justify-center">
+                <div className="w-full max-w-sm">
+                  <PerformanceDistributionChart data={selectedAnalytics.distribution} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
+              <h2 className="font-semibold mb-6 text-primary">Recent Analyses</h2>
+              <div className="space-y-4">
+                {selectedAnalytics.recentAnalyses.length > 0 ? selectedAnalytics.recentAnalyses.map((activity: any, i: number) => (
+                  <ActivityRow key={i} student={activity.studentName} exam={activity.examTitle} status={activity.status} />
+                )) : (
+                  <p className="text-sm text-primary/40 italic text-center py-4">No recent activities for this class.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        !isLoading && <p className="text-center py-10 text-primary/50">No class data available.</p>
+      )}
+
     </div>
   );
 }
@@ -127,7 +187,7 @@ function ActivityRow({ student, exam, status }: {
   exam: string;
   status: string;
 }) {
-  const isProcessing = status === "Processing";
+  const isProcessing = status === "Not Processed";
   return (
     <div className="flex items-center justify-between py-3 border-b border-primary/8 last:border-0">
       <div className="flex items-center gap-3">
