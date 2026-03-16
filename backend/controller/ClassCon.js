@@ -6,7 +6,7 @@ const createClass = async (req, res) => {
   try {
     // Find the teacher profile for this user
     let teacher = await Teacher.findOne({ user: req.user._id });
-    
+
     // If no teacher profile but user is teacher, create one
     if (!teacher && req.user.role === "teacher") {
       teacher = await Teacher.create({ user: req.user._id });
@@ -17,11 +17,12 @@ const createClass = async (req, res) => {
     }
 
     const newClass = await Class.create({ ...req.body, teacher: teacher._id });
-
     res.status(201).json({
       success: true,
       data: newClass
     });
+
+
 
   } catch (error) {
     res.status(400).json({

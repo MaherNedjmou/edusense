@@ -4,12 +4,10 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { 
   Upload, FileText, Brain, Sparkles, Crown, X, 
   CheckCircle, Lightbulb, AlertTriangle, ChevronDown, 
-  Users, BookOpen, GraduationCap, Plus 
+  GraduationCap, Plus, Download, RotateCcw, Loader2
 } from "lucide-react";
 import Button from "@/components/UI/Button";
 import InsightCard from "@/components/UI/InsightCard";
-import { CLASSES_DATA, MOCK_STUDENTS } from "@/data/classesData";
-import { CLASS_SECTIONS_DATA } from "@/data/mockData";
 import api from "@/lib/api";
 
 export default function AnalysisPage() {
@@ -19,13 +17,17 @@ export default function AnalysisPage() {
   const [studentPapers, setStudentPapers] = useState<File[]>([]);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  
-  // New States for Result Flow
+
+  // Analysis flow states
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [score, setScore] = useState(0);
   const [feedbackData, setFeedbackData] = useState<any>(null);
+  const [analysisId, setAnalysisId] = useState<string>(""); // StudentClassAnswer _id
   const [isUploadingSolution, setIsUploadingSolution] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Data states
   const [classes, setClasses] = useState<any[]>([]);
   const [allSections, setAllSections] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
@@ -35,9 +37,7 @@ export default function AnalysisPage() {
     const fetchClasses = async () => {
       try {
         const res = await api.get<any>("/classes");
-        if (res && res.data) {
-          setClasses(res.data);
-        }
+        if (res && res.data) setClasses(res.data);
       } catch (err) {
         console.error("Error fetching classes:", err);
       }
@@ -52,36 +52,37 @@ export default function AnalysisPage() {
       setStudents([]);
       return;
     }
-
     const fetchClassData = async () => {
       try {
         const [examsRes, studentsRes] = await Promise.all([
           api.get<any>(`/exams/class/${selectedClassId}`),
           api.get<any>(`/student-classes/${selectedClassId}`)
         ]);
-
         if (examsRes) setAllSections(examsRes);
         if (studentsRes) {
           setStudents(studentsRes.map((sc: any) => ({
             id: sc._id,
-            name: sc.student?.user?.firstName ? `${sc.student.user.firstName} ${sc.student.user.lastName}` : (sc.student?.name || "Unknown")
+            name: sc.student?.user?.firstName
+              ? `${sc.student.user.firstName} ${sc.student.user.lastName}`
+              : (sc.student?.name || "Unknown")
           })));
         }
       } catch (err) {
         console.error("Error fetching class data:", err);
       }
     };
-
     fetchClassData();
   }, [selectedClassId]);
 
-  // Derive sections based on selected class
   const sections = allSections;
 
-  // Derive selected section object
   const selectedSection = useMemo(() => {
     return sections.find((s: any) => s._id === selectedSectionId || s.id === selectedSectionId);
   }, [sections, selectedSectionId]);
+
+  const selectedStudentName = useMemo(() => {
+    return students.find(s => s.id === selectedStudent)?.name || selectedStudent;
+  }, [students, selectedStudent]);
 
   const handleStudentUpload = (files: FileList | null) => {
     if (!files) return;
@@ -99,37 +100,26 @@ export default function AnalysisPage() {
   };
 
   const removeStudentFile = (index: number) =>
-    setStudentPapers(studentPapers.filter(((_, i) => i !== index)));
+    setStudentPapers(studentPapers.filter((_, i) => i !== index));
 
   const handleModelSolutionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || !files.length || !selectedSectionId) return;
-
     setIsUploadingSolution(true);
     try {
       const formData = new FormData();
       Array.from(files).forEach(file => formData.append("files", file));
-
       const uploadRes = await api.upload<any>("/cloudinary/upload", formData);
       if (!uploadRes.results) return;
-
-      const newImages = uploadRes.results.map((r: any) => ({
-        url: r.cloudinaryUrl,
-        public_id: r.public_id
-      }));
-
+      const newImages = uploadRes.results.map((r: any) => ({ url: r.cloudinaryUrl, public_id: r.public_id }));
       const currentSection = allSections.find(s => s._id === selectedSectionId || s.id === selectedSectionId);
-      const payload = {
-        solutionImages: [...(currentSection?.solutionImages ?? []), ...newImages]
-      };
-
+      const payload = { solutionImages: [...(currentSection?.solutionImages ?? []), ...newImages] };
       const updatedExam = await api.put<any>(`/exams/${selectedSectionId}`, payload);
-      
       setAllSections(prev => prev.map(s => {
-          if (s._id === selectedSectionId || s.id === selectedSectionId) {
-              return { ...s, solutionImages: updatedExam.solutionImages };
-          }
-          return s;
+        if (s._id === selectedSectionId || s.id === selectedSectionId) {
+          return { ...s, solutionImages: updatedExam.solutionImages };
+        }
+        return s;
       }));
     } catch (err) {
       console.error("Failed to upload model solution", err);
@@ -140,7 +130,6 @@ export default function AnalysisPage() {
 
   const startAnalysis = async () => {
     if (!isReadyForAnalysis) return;
-
     setIsAnalyzing(true);
     try {
       const formData = new FormData();
@@ -149,12 +138,12 @@ export default function AnalysisPage() {
       formData.append("studentClassId", selectedStudent);
 
       const res = await api.upload<any>("/student-class-answers/upload", formData);
-      console.log("Upload analysis result:", res);
+      const answerId = res._id || res.id;
+      setAnalysisId(answerId);
 
       const feedbackRes = await api.post<any>("/feedbacks/generate", {
-          studentClassAnswerId: res._id || res.id
+        studentClassAnswerId: answerId
       });
-      console.log("Feedback generated:", feedbackRes);
 
       setFeedbackData(feedbackRes);
       setAnalysisComplete(true);
@@ -166,10 +155,26 @@ export default function AnalysisPage() {
     }
   };
 
+  const handleDownloadReport = async () => {
+    if (!analysisId) return;
+    setIsDownloading(true);
+    try {
+      const examTitle = selectedSection?.title || "exam";
+      const filename = `report_${examTitle.replace(/\s+/g, "_")}_${selectedStudentName.replace(/\s+/g, "_")}.pdf`;
+      await api.downloadPdf(`/reports/exam/${analysisId}`, filename);
+    } catch (err) {
+      console.error("Failed to download report:", err);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const resetAnalysis = () => {
     setAnalysisComplete(false);
     setStudentPapers([]);
     setFeedbackData(null);
+    setAnalysisId("");
+    setScore(0);
   };
 
   const isReadyForAnalysis = selectedClassId && selectedSectionId && selectedStudent && studentPapers.length > 0;
@@ -180,16 +185,18 @@ export default function AnalysisPage() {
       {/* Loading Overlay */}
       {isAnalyzing && (
         <div className="fixed inset-0 z-100 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center space-y-6">
-           <div className="relative">
-              <div className="absolute inset-0 bg-secondary/20 rounded-full animate-ping"></div>
-              <div className="bg-secondary p-8 rounded-full shadow-2xl relative">
-                <Brain size={48} className="text-white animate-pulse" />
-              </div>
-           </div>
-           <div className="text-center space-y-1">
-              <h2 className="text-2xl font-black text-primary">AI is Analyzing...</h2>
-              <p className="text-primary/40 font-bold uppercase tracking-widest text-xs">Scanning {studentPapers[0]?.name} against model solution</p>
-           </div>
+          <div className="relative">
+            <div className="absolute inset-0 bg-secondary/20 rounded-full animate-ping"></div>
+            <div className="bg-secondary p-8 rounded-full shadow-2xl relative">
+              <Brain size={48} className="text-white animate-pulse" />
+            </div>
+          </div>
+          <div className="text-center space-y-1">
+            <h2 className="text-2xl font-black text-primary">AI is Analyzing...</h2>
+            <p className="text-primary/40 font-bold uppercase tracking-widest text-xs">
+              Scanning {studentPapers[0]?.name} against model solution
+            </p>
+          </div>
         </div>
       )}
 
@@ -203,17 +210,14 @@ export default function AnalysisPage() {
 
       {/* Selection Context */}
       <div className="grid md:grid-cols-3 gap-4">
-        {/* Class Selection */}
+        {/* Class */}
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-primary/40 uppercase tracking-widest px-1">Class</label>
           <div className="relative">
             <select
               disabled={analysisComplete}
               value={selectedClassId}
-              onChange={(e) => {
-                setSelectedClassId(e.target.value);
-                setSelectedSectionId("");
-              }}
+              onChange={(e) => { setSelectedClassId(e.target.value); setSelectedSectionId(""); }}
               className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-secondary/20 appearance-none cursor-pointer disabled:opacity-50"
             >
               <option value="">Select a class</option>
@@ -225,7 +229,7 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* Section Selection */}
+        {/* Section */}
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-primary/40 uppercase tracking-widest px-1">Section</label>
           <div className="relative">
@@ -244,7 +248,7 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* Student Selection */}
+        {/* Student */}
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-primary/40 uppercase tracking-widest px-1">Student</label>
           <div className="relative">
@@ -265,10 +269,10 @@ export default function AnalysisPage() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        
-        {/* Left Card: Model Solution Info */}
+
+        {/* Left: Model Solution */}
         <div className="space-y-6 min-h-40">
-          <div className=" bg-white border border-primary/10 rounded-3xl p-6 shadow-sm space-y-5">
+          <div className="bg-white border border-primary/10 rounded-3xl p-6 shadow-sm space-y-5">
             <div className="flex items-center gap-3">
               <div className="bg-primary/5 p-2.5 rounded-2xl">
                 <FileText size={20} className="text-primary/60" />
@@ -285,7 +289,9 @@ export default function AnalysisPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-primary truncate">Section Images Attached</p>
-                      <p className="text-[10px] text-primary/40 uppercase font-bold tracking-tight">{selectedSection.solutionImages.length} images as reference</p>
+                      <p className="text-[10px] text-primary/40 uppercase font-bold tracking-tight">
+                        {selectedSection.solutionImages.length} images as reference
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -301,13 +307,7 @@ export default function AnalysisPage() {
                         <div className="bg-white border border-primary/20 hover:border-secondary/40 hover:bg-secondary/5 text-primary text-[10px] py-1.5 px-3 rounded-lg font-bold transition-all">
                           Upload One Now
                         </div>
-                        <input
-                          type="file"
-                          accept=".pdf,.png,.jpg,.jpeg"
-                          multiple
-                          className="hidden"
-                          onChange={handleModelSolutionUpload}
-                        />
+                        <input type="file" accept=".pdf,.png,.jpg,.jpeg" multiple className="hidden" onChange={handleModelSolutionUpload} />
                       </label>
                     )}
                   </div>
@@ -319,13 +319,12 @@ export default function AnalysisPage() {
               </div>
             )}
           </div>
-
         </div>
 
-        {/* Right Card: Upload Student Paper or Result View */}
+        {/* Right: Upload or Result */}
         <div className="space-y-6 min-h-40">
           {!analysisComplete ? (
-            <div className=" bg-white border border-primary/10 rounded-3xl p-8 shadow-sm space-y-6">
+            <div className="bg-white border border-primary/10 rounded-3xl p-8 shadow-sm space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="bg-secondary/10 p-3 rounded-2xl">
@@ -382,8 +381,10 @@ export default function AnalysisPage() {
                             <p className="text-xs font-bold text-primary truncate">{file.name}</p>
                             <p className="text-[10px] text-primary/40">{(file.size / 1024).toFixed(1)} KB</p>
                           </div>
-                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeStudentFile(index); }}
-                            className="absolute -top-2 -right-2 bg-white text-primary border border-primary/10 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-50 hover:text-red-500">
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeStudentFile(index); }}
+                            className="absolute -top-2 -right-2 bg-white text-primary border border-primary/10 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-50 hover:text-red-500"
+                          >
                             <X size={12} />
                           </button>
                         </div>
@@ -391,11 +392,10 @@ export default function AnalysisPage() {
                     </div>
                   </div>
                 )}
-
                 <input type="file" ref={fileInputRef} multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden"
                   onChange={(e) => handleStudentUpload(e.target.files)} />
               </label>
-              
+
               {showUpgrade && (
                 <div className="bg-accent/5 border border-accent/20 rounded-2xl p-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -409,7 +409,7 @@ export default function AnalysisPage() {
               )}
             </div>
           ) : (
-            /* Analysis Result View */
+            /* ─── Analysis Result View ─── */
             <div className="bg-white border-2 border-secondary/20 rounded-3xl p-8 shadow-2xl space-y-8 animate-in fade-in zoom-in duration-500">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -418,7 +418,9 @@ export default function AnalysisPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-black text-primary">Performance Result</h2>
-                    <p className="text-sm text-primary/40 font-bold uppercase tracking-widest">{selectedStudent} · {selectedSection?.title}</p>
+                    <p className="text-sm text-primary/40 font-bold uppercase tracking-widest">
+                      {selectedStudentName} · {selectedSection?.title}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -454,15 +456,36 @@ export default function AnalysisPage() {
                   "{feedbackData?.recommendation || "Student shows high mastery of the subject."}"
                 </p>
               </div>
+
+              {/* ─── Download / Discard ─── */}
+              <div className="flex flex-wrap gap-3 pt-2">
+                <button
+                  onClick={handleDownloadReport}
+                  disabled={isDownloading || !analysisId}
+                  className="flex-1 flex items-center justify-center gap-2 bg-secondary text-white font-bold text-sm py-3 px-6 rounded-2xl shadow-lg shadow-secondary/30 hover:bg-secondary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                >
+                  {isDownloading
+                    ? <><Loader2 size={18} className="animate-spin" /> Generating PDF...</>
+                    : <><Download size={18} /> Download Report</>
+                  }
+                </button>
+                <button
+                  onClick={resetAnalysis}
+                  className="flex items-center justify-center gap-2 border border-primary/15 text-primary/60 font-bold text-sm py-3 px-6 rounded-2xl hover:bg-primary/5 transition-all"
+                >
+                  <RotateCcw size={16} /> Discard
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex justify-center mt-6">
-        {!analysisComplete ? (
-          <Button 
-            variant="primary" 
+      {/* Generate Button (pre-analysis) */}
+      {!analysisComplete && (
+        <div className="flex justify-center mt-6">
+          <Button
+            variant="primary"
             onClick={startAnalysis}
             disabled={!isReadyForAnalysis}
             className="max-w-md w-full py-4 rounded-2xl"
@@ -470,34 +493,15 @@ export default function AnalysisPage() {
             <Sparkles size={20} />
             Generate AI Insights
           </Button>
-        ) : (
-          <div className="flex flex-wrap justify-center gap-4">
-            <Button 
-              variant="primary" 
-              onClick={resetAnalysis}
-              className="py-4 px-8 rounded-2xl"
-            >
-              <CheckCircle size={20} />
-              Store Result
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={resetAnalysis}
-              className="py-4 px-8 rounded-2xl"
-            >
-              Discard Result
-            </Button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Insights Placeholder */}
+      {/* AI Insights Section */}
       <div className="space-y-6 pt-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-black uppercase tracking-[0.2em] text-primary/30">AI Performance Insights</h2>
           <div className="h-px flex-1 bg-primary/10 ml-6"></div>
         </div>
-
         <div className="grid lg:grid-cols-3 gap-5 text-sm">
           <InsightCard
             variant="success"

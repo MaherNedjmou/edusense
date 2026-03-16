@@ -58,6 +58,28 @@ export const api = {
     if (!response.ok) throw new Error(data.message || data.error || "Upload Error");
     return data as T;
   },
+
+  downloadPdf: async (path: string, filename = "report.pdf"): Promise<void> => {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${getToken() ?? ""}`,
+      },
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error((data as any).message || (data as any).error || "Download Error");
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
 };
 
 export default api;

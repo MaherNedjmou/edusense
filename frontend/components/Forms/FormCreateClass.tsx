@@ -33,6 +33,7 @@ export default function FormCreateClass({ onClose, onClassCreated }: FormCreateC
       };
 
 
+
       const res = await api.post<any>("/classes", payload);
       
       if (res.success) {

@@ -302,7 +302,6 @@ const getTeacherAnalytics = async (req, res) => {
         };
       }).filter(e => e.score > 0 || processedAnswers.some(ans => ans.examTitle === e.exam));
 
-console.log(examAverages)
 
       const processedCount = processedAnswers.filter(a => a.status === 'Processed').length;
       const totalScore = processedAnswers.reduce((sum, ans) => sum + (ans.status === 'Processed' ? ans.score : 0), 0);
