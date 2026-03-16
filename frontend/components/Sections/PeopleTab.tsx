@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Plus, MoreVertical, X, Award, Calendar, CheckCircle, AlertCircle, TrendingUp, UserPlus, Filter, ShieldCheck, User, ExternalLink } from "lucide-react";
-import { MOCK_STUDENTS } from "@/data/classesData";
+import {
+  Plus, MoreVertical, X, Award, Calendar, CheckCircle,
+  AlertCircle, TrendingUp, UserPlus, ShieldCheck, User,
+  ExternalLink, Download, Loader2, FileText
+} from "lucide-react";
 import Button from "@/components/UI/Button";
 import StudentMiniTrendChart from "@/components/Charts/StudentMiniTrendChart";
 import api from "@/lib/api";
+
 interface Student {
-  id: string;
+  id: string;           // StudentClass._id  (used for report)
   name: string;
   email: string;
   type: "real" | "local";
@@ -22,29 +26,24 @@ interface PeopleTabProps {
 }
 
 export default function PeopleTab({ cls, classId }: PeopleTabProps) {
-  // const [students, setStudents] = useState<Student[]>(
-  //   MOCK_STUDENTS.map(name => ({
-  //     name,
-  //     email: `${name.toLowerCase().replace(" ", ".")}@school.edu`,
-  //     type: "real"
-  //   }))
-  // );
   const [students, setStudents] = useState<Student[]>([]);
-
   const [filterType, setFilterType] = useState<"all" | "real" | "local">("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
 
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  // Selected student for detail modal
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [perStudentData, setPerStudentData] = useState<Record<string, any>>({});
-  const studentData = selectedStudent ? perStudentData[selectedStudent] : null;
+  const studentData = selectedStudent ? perStudentData[selectedStudent.name] : null;
+
+  // Download state
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const filteredStudents = useMemo(() => {
     if (filterType === "all") return students;
     return students.filter(s => s.type === filterType);
   }, [students, filterType]);
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,11 +52,12 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
           api.get<any>(`/student-classes/${cls._id}`),
           api.get<any>(`/student-classes/stats/${cls._id}`)
         ]);
-
         if (studentsRes) {
           setStudents(studentsRes.map((item: any) => ({
-            id: item._id,
-            name: item.student?.user?.firstName ? item.student.user.firstName + " " + item.student.user.lastName : (item.student?.name || "Unknown"),
+            id: item._id,  // StudentClass._id → used for report endpoint
+            name: item.student?.user?.firstName
+              ? item.student.user.firstName + " " + item.student.user.lastName
+              : (item.student?.name || "Unknown"),
             email: item.student?.user?.email || "no-email@local.edu",
             type: item.student?.user?.isRealUser ? "real" : "local",
           })));
@@ -86,39 +86,50 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
     setShowAddModal(false);
   };
 
+  const handleDownloadFullReport = async () => {
+    if (!selectedStudent?.id) return;
+    setIsDownloading(true);
+    try {
+      await api.downloadPdf(
+        `/reports/student/${selectedStudent.id}`,
+        `${selectedStudent.name.replace(/\s+/g, "_")}_full_report.pdf`
+      );
+    } catch (err) {
+      console.error("Failed to download student report:", err);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto relative px-4 sm:px-0 space-y-4">
 
-      {/* Search & Filter Bar */}
+      {/* Filter & Actions Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-primary/10 rounded-2xl p-4 shadow-sm">
         <div className="flex items-center gap-1 bg-primary/2 p-1 rounded-xl w-full sm:w-auto">
           {(["all", "real", "local"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setFilterType(t)}
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all uppercase tracking-widest ${filterType === t
-                ? "bg-white text-secondary shadow-sm border border-secondary/10"
-                : "text-primary/40 hover:text-primary/60"
-                }`}
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all uppercase tracking-widest ${
+                filterType === t
+                  ? "bg-white text-secondary shadow-sm border border-secondary/10"
+                  : "text-primary/40 hover:text-primary/60"
+              }`}
             >
               {t}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button variant="outline" className="text-xs flex-1 sm:flex-none">
-            Invite
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => setShowAddModal(true)}
-            className="text-xs flex-1 sm:flex-none"
-          >
+          <Button variant="outline" className="text-xs flex-1 sm:flex-none">Invite</Button>
+          <Button variant="primary" onClick={() => setShowAddModal(true)} className="text-xs flex-1 sm:flex-none">
             <UserPlus size={12} /> Add Local
           </Button>
         </div>
       </div>
 
+      {/* Student Roster */}
       <div className="bg-white border border-primary/10 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-primary/8 flex items-center justify-between bg-primary/2">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/30">
@@ -135,7 +146,7 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
             filteredStudents.map((student, i) => (
               <div
                 key={i}
-                onClick={() => setSelectedStudent(student.name)}
+                onClick={() => setSelectedStudent(student)}
                 className="px-6 py-4 flex items-center gap-4 hover:bg-primary/3 transition-all cursor-pointer group"
               >
                 <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-sm font-bold text-secondary shrink-0 border border-secondary/5">
@@ -143,7 +154,9 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-primary group-hover:text-secondary transition-colors truncate">{student.name}</p>
+                    <p className="text-sm font-bold text-primary group-hover:text-secondary transition-colors truncate">
+                      {student.name}
+                    </p>
                     {student.type === "real" ? (
                       <div className="flex items-center gap-1 bg-green-50 text-[10px] text-green-600 px-1.5 py-0.5 rounded-md border border-green-100 font-bold shrink-0">
                         <ShieldCheck size={10} /> Real
@@ -154,18 +167,14 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-primary/40 truncate">
-                    {student.email}
-                  </p>
+                  <p className="text-xs text-primary/40 truncate">{student.email}</p>
                 </div>
 
-                {/* Mini Trend for high-performing students */}
-                {perStudentData[student.name] && perStudentData[student.name].trend && perStudentData[student.name].trend.length > 0 && (
+                {perStudentData[student.name]?.trend?.length > 0 && (
                   <div className="hidden sm:block w-16 h-8 opacity-40 group-hover:opacity-100 transition-opacity">
                     <StudentMiniTrendChart trend={perStudentData[student.name].trend} />
                   </div>
                 )}
-
                 <button className="text-primary/20 hover:text-primary transition-colors p-1.5 hover:bg-primary/5 rounded-lg">
                   <MoreVertical size={16} />
                 </button>
@@ -215,28 +224,29 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
         </div>
       )}
 
-      {/* Student Details Modal Overlay */}
+      {/* ─── Student Details Modal ─── */}
       {selectedStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-primary/40 backdrop-blur-sm shadow-2xl"
-            onClick={() => setSelectedStudent(null)}
+            onClick={() => { setSelectedStudent(null); setIsDownloading(false); }}
           />
 
           <div className="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-primary/10 overflow-hidden flex flex-col max-h-[90vh]">
+            
             {/* Modal Header */}
             <div className="px-8 py-6 border-b border-primary/5 flex items-center justify-between bg-primary/2">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center text-white text-lg font-black shadow-lg shadow-secondary/30">
-                  {selectedStudent.split(" ").map((n) => n[0]).join("")}
+                  {selectedStudent.name.split(" ").map((n) => n[0]).join("")}
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-primary">{selectedStudent}</h2>
+                  <h2 className="text-xl font-bold text-primary">{selectedStudent.name}</h2>
                   <p className="text-xs text-primary/40 font-medium">Student Performance Overview</p>
                 </div>
               </div>
               <button
-                onClick={() => setSelectedStudent(null)}
+                onClick={() => { setSelectedStudent(null); setIsDownloading(false); }}
                 className="p-2 hover:bg-primary/5 rounded-xl text-primary/30 hover:text-primary transition-all"
               >
                 <X size={20} />
@@ -251,15 +261,19 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="p-4 bg-secondary/5 rounded-2xl border border-secondary/10">
                       <p className="text-[10px] font-bold text-secondary/60 uppercase tracking-widest mb-1">Average</p>
-                      <p className="text-xl font-black text-secondary">{(studentData.exams.reduce((acc: number, ex: any) => acc + ex.score, 0) / studentData.exams.length).toFixed(1)}%</p>
+                      <p className="text-xl font-black text-secondary">
+                        {(studentData.exams.reduce((acc: number, ex: any) => acc + ex.score, 0) / studentData.exams.length).toFixed(1)}%
+                      </p>
                     </div>
                     <div className="p-4 bg-primary/2 rounded-2xl border border-primary/5">
                       <p className="text-[10px] font-bold text-primary/30 uppercase tracking-widest mb-1">Exams</p>
                       <p className="text-xl font-black text-primary">{studentData.exams.length}</p>
                     </div>
                     <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
-                      <p className="text-[10px] font-bold text-green-600/60 uppercase tracking-widest mb-1">Rank</p>
-                      <p className="text-xl font-black text-green-700">Top 10%</p>
+                      <p className="text-[10px] font-bold text-green-600/60 uppercase tracking-widest mb-1">Best</p>
+                      <p className="text-xl font-black text-green-700">
+                        {Math.max(...studentData.exams.map((e: any) => e.score))}%
+                      </p>
                     </div>
                   </div>
 
@@ -318,7 +332,7 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
                                   href={ans.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/5 hover:bg-secondary/10 text-[10px] font-bold text-secondary hover:text-secondary-dark rounded-lg border border-secondary/10 transition-all group/link"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/5 hover:bg-secondary/10 text-[10px] font-bold text-secondary rounded-lg border border-secondary/10 transition-all group/link"
                                 >
                                   <ExternalLink size={10} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
                                   View Answer {exam.answers.length > 1 ? idx + 1 : ""}
@@ -332,21 +346,46 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
                   </div>
                 </>
               ) : (
+                /* No data state */
                 <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
                   <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center text-primary/20">
                     <TrendingUp size={32} />
                   </div>
                   <div>
-                    <p className="font-bold text-primary">Detailed data pending</p>
-                    <p className="text-xs text-primary/40 max-w-xs">AI is still processing previous exams for this student to generate full insights.</p>
+                    <p className="font-bold text-primary">No exam data yet</p>
+                    <p className="text-xs text-primary/40 max-w-xs">
+                      Once this student submits exams and receives AI feedback, their history will appear here.
+                    </p>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="px-8 py-5 bg-primary/2 border-t border-primary/5 flex justify-end gap-3">
-              <Button onClick={() => setSelectedStudent(null)} variant="outline" className="text-xs">Close</Button>
-              <Button variant="primary" className="text-xs">Full Report</Button>
+            {/* Modal Footer — Download Full Report */}
+            <div className="px-8 py-5 bg-primary/2 border-t border-primary/5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs text-primary/40">
+                <FileText size={14} />
+                <span>Full LaTeX PDF report with complete history</span>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => { setSelectedStudent(null); setIsDownloading(false); }}
+                  variant="outline"
+                  className="text-xs"
+                >
+                  Close
+                </Button>
+                <button
+                  onClick={handleDownloadFullReport}
+                  disabled={isDownloading || !selectedStudent?.id}
+                  className="flex items-center gap-2 bg-secondary text-white font-bold text-xs py-2 px-5 rounded-xl shadow-lg shadow-secondary/25 hover:bg-secondary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                >
+                  {isDownloading
+                    ? <><Loader2 size={14} className="animate-spin" /> Generating...</>
+                    : <><Download size={14} /> Full Report</>
+                  }
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -354,4 +393,3 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
     </div>
   );
 }
-
