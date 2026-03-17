@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Home, NotebookPen, Package, User, LogOut, Menu, X } from "lucide-react";
+import { Home, Package, User, LogOut, Menu, X } from "lucide-react";
 
 const DashboardSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,7 +20,6 @@ const DashboardSidebar = () => {
   const navLinks = [
     { href: "/student", label: "Home", icon: Home },
     { href: "/student/classes", label: "Classes", icon: Package },
-    { href: "/student/tasks", label: "Tasks", icon: NotebookPen },
     { href: "/student/profile", label: "Profile", icon: User },
   ];
 
@@ -38,7 +37,7 @@ const DashboardSidebar = () => {
         
         {/* Username & avatar */}
         <Link href="/student/profile" className="flex items-center gap-3">
-          <span className="text-sm font-medium text-primary">John Doe</span>
+          <span className="text-sm font-medium text-primary">Amer Zitouni</span>
           <div className="w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center text-primary font-bold">JD</div>
         </Link>
       </div>
@@ -67,7 +66,7 @@ const DashboardSidebar = () => {
         {/* Username & avatar */}
         <Link href="/student/profile" className="hidden lg:flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-full bg-gray-500/20 flex items-center justify-center text-primary font-bold">JD</div>
-          <span className="font-medium text-primary">John Doe</span>
+          <span className="font-medium text-primary">Amer Zitouni</span>
         </Link>
 
         {/* Navigation Links */}
