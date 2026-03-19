@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Home, Package, User, LogOut, Menu, X } from "lucide-react";
-
+import { getUser } from "@/lib/auth";
 const DashboardSidebar = () => {
+  const user = getUser();
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
@@ -37,8 +38,8 @@ const DashboardSidebar = () => {
         
         {/* Username & avatar */}
         <Link href="/student/profile" className="flex items-center gap-3">
-          <span className="text-sm font-medium text-primary">Amer Zitouni</span>
-          <div className="w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center text-primary font-bold">JD</div>
+          <span className="text-sm font-medium text-primary">{user?.firstName || ""} {user?.lastName || ""}</span>
+          <div className="w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center text-primary font-bold">{user?.firstName?.charAt(0) || ""}{user?.lastName?.charAt(0) || ""}</div>
         </Link>
       </div>
 
@@ -65,8 +66,8 @@ const DashboardSidebar = () => {
 
         {/* Username & avatar */}
         <Link href="/student/profile" className="hidden lg:flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-full bg-gray-500/20 flex items-center justify-center text-primary font-bold">JD</div>
-          <span className="font-medium text-primary">Amer Zitouni</span>
+          <div className="w-10 h-10 rounded-full bg-gray-500/20 flex items-center justify-center text-primary font-bold">{user?.firstName?.charAt(0) || ""}{user?.lastName?.charAt(0) || ""}</div>
+          <span className="font-medium text-primary">{user?.firstName || ""} {user?.lastName || ""}</span>
         </Link>
 
         {/* Navigation Links */}

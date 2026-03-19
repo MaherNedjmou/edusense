@@ -3,8 +3,9 @@
 import { useState, useRef } from "react";
 import { User, Mail, School, Lock, Pencil, Camera, CheckCircle, Star } from "lucide-react";
 import Button from "@/components/UI/Button";
-import { getUser } from "@/lib/auth";
+import { getUser , updateUserInfo} from "@/lib/auth";
 import { useStore } from "@/store/useStore";
+import api from "@/lib/api";
 
 export default function ProfilePage() {
   const user = getUser();
@@ -27,7 +28,31 @@ export default function ProfilePage() {
     console.log("Avatar uploaded:", e.target.files[0]);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+
+
+    try {
+      const payload = {
+        firstName: firstName || null,
+        lastName: lastName || null,
+        school: school || null,
+      };
+
+
+
+      const res = await api.put<any>(`/users/${user._id}`, payload);
+
+      if (res.success) {
+        user.firstName = firstName || user.firstName
+        user.lastName = lastName || user.lastName
+        user.school = lastName || user.school
+        updateUserInfo(user)
+        console.log("success")
+      }
+    } catch (err: any) {
+      console.log(err.message || "Failed to create class.");
+    }
+
     setSaved(true);
     setEditMode(false);
     setTimeout(() => setSaved(false), 3000);
@@ -102,13 +127,13 @@ export default function ProfilePage() {
               <InputField label="First Name" icon={<User size={14} />} value={firstName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)} disabled={!editMode} />
               <InputField label="Last Name" icon={<User size={14} />} value={lastName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)} disabled={!editMode} />
               <div className="md:col-span-2">
-                <InputField label="Email Address" icon={<Mail size={14} />} value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} disabled={!editMode} />
+                <InputField label="Email Address" icon={<Mail size={14} />} value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} disabled={true} />
               </div>
               <div className="md:col-span-2">
                 <InputField label="School / Institution" icon={<School size={14} />} value={school} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSchool(e.target.value)} disabled={!editMode} />
               </div>
               <div className="md:col-span-2">
-                <InputField label="Password" icon={<Lock size={14} />} value="**************" onChange={() => { }} disabled={!editMode} type="password" />
+                <InputField label="Password" icon={<Lock size={14} />} value="**************" onChange={() => { }} disabled={true} type="password" />
               </div>
             </div>
 
@@ -143,8 +168,8 @@ function InputField({ label, icon, value, onChange, disabled, type = "text" }: {
         {label}
       </label>
       <div className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 border transition-all ${disabled
-          ? "bg-primary/5 border-primary/10"
-          : "bg-white border-secondary/40 shadow-sm ring-2 ring-secondary/10"
+        ? "bg-primary/5 border-primary/10"
+        : "bg-white border-secondary/40 shadow-sm ring-2 ring-secondary/10"
         }`}>
         <span className={disabled ? "text-primary/30" : "text-secondary"}>
           {icon}

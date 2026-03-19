@@ -9,6 +9,11 @@ router.post("/", answerController.createAnswer);
 router.post("/upload", upload.array("files"), answerController.uploadStudentAnswer);
 router.get("/ping", (req, res) => res.json({ message: "pong" }));
 
+router.get("/my/:classId", answerController.getMyAnswersForClass);
+router.delete("/my/:id", answerController.deleteMyAnswer);
+
+router.get("/teacher/:classId", answerController.getAnswersForTeacher);
+
 router.get("/", answerController.getAnswers);
 
 router.get("/:id", answerController.getAnswerById);

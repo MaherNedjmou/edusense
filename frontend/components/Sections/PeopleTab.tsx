@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import {
   Plus, MoreVertical, X, Award, Calendar, CheckCircle,
   AlertCircle, TrendingUp, UserPlus, ShieldCheck, User,
-  ExternalLink, Download, Loader2, FileText
+  ExternalLink, Download, Loader2, FileText, Users, BookOpen
 } from "lucide-react";
 import Button from "@/components/UI/Button";
 import StudentMiniTrendChart from "@/components/Charts/StudentMiniTrendChart";
@@ -103,6 +103,24 @@ export default function PeopleTab({ cls, classId }: PeopleTabProps) {
 
   return (
     <div className="max-w-3xl mx-auto relative px-4 sm:px-0 space-y-4">
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white border border-primary/10 rounded-2xl p-4 shadow-sm flex items-center gap-4">
+          <div className="bg-secondary/10 p-3 rounded-xl"><Users size={18} className="text-secondary" /></div>
+          <div>
+            <p className="text-xs font-bold text-primary/40 uppercase tracking-widest">Students</p>
+            <p className="text-xl font-black text-primary">{cls.studentCount || 0}</p>
+          </div>
+        </div>
+        <div className="bg-white border border-primary/10 rounded-2xl p-4 shadow-sm flex items-center gap-4">
+          <div className="bg-accent/10 p-3 rounded-xl"><BookOpen size={18} className="text-accent" /></div>
+          <div>
+            <p className="text-xs font-bold text-primary/40 uppercase tracking-widest">Sections</p>
+            <p className="text-xl font-black text-primary">{cls.sectionCount || 0}</p>
+          </div>
+        </div>
+      </div>
 
       {/* Filter & Actions Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-primary/10 rounded-2xl p-4 shadow-sm">

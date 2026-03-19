@@ -73,7 +73,7 @@ export default function ClassesPage() {
               subject={cls.subject}
               description={cls.description || ""}
               color={cls.color}
-              code={cls.code}
+              code={cls._id}
               studentCount={cls.studentCount || 0}
               sectionCount={cls.sectionCount || 0}
               copied={copied === cls._id}

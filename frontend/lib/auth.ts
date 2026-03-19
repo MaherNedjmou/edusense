@@ -10,6 +10,10 @@ export const saveAuth = (token: string, user: any) => {
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 };
 
+export const updateUserInfo = ( user: any) => {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+};
+
 export const logout = () => {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);

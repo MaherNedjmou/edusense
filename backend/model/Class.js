@@ -10,6 +10,11 @@ const classSchema = new mongoose.Schema({
     description: String,
     color: String,
     subject: String,
+    code: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
 
     teacher: {
         type: mongoose.Schema.Types.ObjectId,

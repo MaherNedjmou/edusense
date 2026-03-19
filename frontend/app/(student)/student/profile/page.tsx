@@ -3,36 +3,52 @@
 import { useState, useRef } from "react";
 import { User, Mail, School, Lock, Pencil, Camera, CheckCircle } from "lucide-react";
 import Button from "@/components/UI/Button";
-
-const MOCK_STUDENT = {
-  firstName: "Amer",
-  lastName: "Zitouni",
-  email: "amer.zitouni@student.edu",
-  school: "Université Constantine 2 - Abdelhamid Mehri",
-};
+import { getUser, updateUserInfo } from "@/lib/auth";
+import api from "@/lib/api";
 
 export default function ProfilePage() {
+  const user = getUser();
 
   const [editMode, setEditMode] = useState(false);
-  const [firstName, setFirstName] = useState(MOCK_STUDENT.firstName);
-  const [lastName, setLastName] = useState(MOCK_STUDENT.lastName);
-  const [email, setEmail] = useState(MOCK_STUDENT.email);
-  const [school, setSchool] = useState(MOCK_STUDENT.school);
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+  const [email] = useState(user?.email || "");
+  const [school, setSchool] = useState(user?.school || "");
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAvatarClick = () => fileInputRef.current?.click();
-
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     console.log("Avatar uploaded:", e.target.files[0]);
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setEditMode(false);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    setError("");
+    try {
+      const payload = {
+        firstName: firstName || null,
+        lastName: lastName || null,
+        school: school || null,
+      };
+
+      const res = await api.put<any>(`/users/${user._id}`, payload);
+
+      if (res.success) {
+        user.firstName = firstName || user.firstName;
+        user.lastName = lastName || user.lastName;
+        user.school = school || user.school;
+        updateUserInfo(user);
+      }
+
+      setSaved(true);
+      setEditMode(false);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to save profile.");
+    }
   };
 
   return (
@@ -83,7 +99,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 pb-1">
                 <Button
                   variant="outline"
-                  onClick={() => setEditMode(!editMode)}
+                  onClick={() => { setEditMode(!editMode); setError(""); }}
                   className="text-xs"
                 >
                   <Pencil size={14} />
@@ -99,7 +115,7 @@ export default function ProfilePage() {
               </h2>
 
               <p className="text-sm text-primary/50 mt-1">
-                {email} · {school}
+                {email}{school ? ` · ${school}` : ""}
               </p>
             </div>
 
@@ -134,8 +150,8 @@ export default function ProfilePage() {
                   label="Email Address"
                   icon={<Mail size={14} />}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={!editMode}
+                  onChange={() => {}}
+                  disabled={true}
                 />
               </div>
 
@@ -155,12 +171,17 @@ export default function ProfilePage() {
                   icon={<Lock size={14} />}
                   value="**************"
                   onChange={() => {}}
-                  disabled={!editMode}
+                  disabled={true}
                   type="password"
                 />
               </div>
 
             </div>
+
+            {/* Error */}
+            {error && (
+              <p className="text-red-500 text-sm mt-4">{error}</p>
+            )}
 
             {/* Save bar */}
             {editMode && (
