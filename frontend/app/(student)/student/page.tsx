@@ -1,59 +1,80 @@
 "use client";
 
-import { FileText, School, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FileText, School, Sparkles, Loader2 } from "lucide-react";
 
 import SubjectPerformanceChart from "@/components/Charts/SubjectPerformanceChart";
 import ScoreDistributionChart from "@/components/Charts/ScoreDistributionChart";
+import api from "@/lib/api";
 
+type DashboardStats = {
+  classCount: number;
+  submissionCount: number;
+  analysisCount: number;
+  averageScore: number;
+};
+
+type SubmissionPoint = { exam: string; score: number };
+
+type Distribution = {
+  excellent: number;
+  good: number;
+  average: number;
+  weak: number;
+};
+
+type FeedbackItem = { exam: string; feedback: string; score: number };
+type SubmissionItem = { exam: string; status: string };
 
 export default function StudentDashboard() {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats>({
+    classCount: 0,
+    submissionCount: 0,
+    analysisCount: 0,
+    averageScore: 0,
+  });
+  const [submissionsData, setSubmissionsData] = useState<SubmissionPoint[]>([]);
+  const [distribution, setDistribution] = useState<Distribution>({
+    excellent: 0, good: 0, average: 0, weak: 0,
+  });
+  const [recentFeedbacks, setRecentFeedbacks] = useState<FeedbackItem[]>([]);
+  const [recentSubmissions, setRecentSubmissions] = useState<SubmissionItem[]>([]);
 
-  const stats = [
-    { label: "Classes", value: "3", icon: <School /> },
-    { label: "Submissions", value: "8", icon: <FileText /> },
-    { label: "AI Analyses", value: "6", icon: <Sparkles /> },
-    { label: "Average Score", value: "78%", icon: <FileText /> }
-  ];
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get<any>("/student-classes/my-stats");
+        if (res.success) {
+          const d = res.data;
+          setStats(d.stats);
+          setSubmissionsData(d.submissionsData || []);
+          setDistribution(d.distribution || { excellent: 0, good: 0, average: 0, weak: 0 });
+          setRecentFeedbacks(d.recentFeedbacks || []);
+          setRecentSubmissions(d.recentSubmissions || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const submissionsData = [
-    { exam: "Math Test 1", score: 72 },
-    { exam: "Physics Quiz", score: 81 },
-    { exam: "Algorithms Exam", score: 84 },
-    { exam: "Math Test 2", score: 76 }
-  ];
+    fetchStats();
+  }, []);
 
-  const distribution = {
-    excellent: 2,
-    good: 3,
-    average: 2,
-    weak: 1
-  };
-
-  const recentFeedbacks = [
-    {
-      exam: "Math Test 2",
-      feedback: "Good algebra understanding but some mistakes in calculus.",
-      score: 76
-    },
-    {
-      exam: "Physics Quiz",
-      feedback: "Strong conceptual answers but calculation errors.",
-      score: 81
-    }
-  ];
-
-  const recentSubmissions = [
-    { exam: "Algorithms Midterm", status: "Processing" },
-    { exam: "Math Test 2", status: "Analyzed" }
+  const statCards = [
+    { label: "Classes", value: loading ? "—" : String(stats.classCount), icon: <School /> },
+    { label: "Submissions", value: loading ? "—" : String(stats.submissionCount), icon: <FileText /> },
+    { label: "AI Analyses", value: loading ? "—" : String(stats.analysisCount), icon: <Sparkles /> },
+    { label: "Average Score", value: loading ? "—" : `${stats.averageScore}%`, icon: <FileText /> },
   ];
 
   return (
     <div className="p-8 space-y-8 bg-background text-primary min-h-screen">
 
       {/* Header */}
-
       <div className="flex justify-between items-center">
-
         <div>
           <h1 className="text-3xl font-semibold text-primary">
             Dashboard
@@ -64,12 +85,14 @@ export default function StudentDashboard() {
           </p>
         </div>
 
+        {loading && (
+          <Loader2 size={20} className="animate-spin text-primary/30" />
+        )}
       </div>
 
       {/* Stats */}
-
       <div className="grid md:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
+        {statCards.map((stat, i) => (
           <StatCard
             key={i}
             icon={stat.icon}
@@ -80,25 +103,25 @@ export default function StudentDashboard() {
       </div>
 
       {/* Charts */}
-
       <div className="grid lg:grid-cols-3 gap-6">
 
         {/* Score Progress */}
-
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
-
           <h2 className="font-semibold mb-4 text-primary">
             Score Progression
           </h2>
 
-          <SubjectPerformanceChart data={submissionsData} />
-
+          {submissionsData.length === 0 && !loading ? (
+            <div className="flex items-center justify-center h-32 text-primary/30 text-sm">
+              No submissions yet
+            </div>
+          ) : (
+            <SubjectPerformanceChart data={submissionsData} />
+          )}
         </div>
 
         {/* Distribution */}
-
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
-
           <h2 className="font-semibold mb-4 text-primary">
             Score Distribution
           </h2>
@@ -109,58 +132,58 @@ export default function StudentDashboard() {
             average={distribution.average}
             weak={distribution.weak}
           />
-
         </div>
 
       </div>
 
       {/* Bottom Section */}
-
       <div className="grid lg:grid-cols-2 gap-6">
 
         {/* Feedback */}
-
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
-
           <h2 className="font-semibold mb-6 text-primary">
             Recent AI Feedback
           </h2>
 
           <div className="space-y-4">
-
-            {recentFeedbacks.map((item, i) => (
-              <FeedbackCard
-                key={i}
-                exam={item.exam}
-                feedback={item.feedback}
-                score={item.score}
-              />
-            ))}
-
+            {recentFeedbacks.length === 0 ? (
+              <p className="text-sm text-primary/40 text-center py-6">
+                No AI feedback yet
+              </p>
+            ) : (
+              recentFeedbacks.map((item, i) => (
+                <FeedbackCard
+                  key={i}
+                  exam={item.exam}
+                  feedback={item.feedback}
+                  score={item.score}
+                />
+              ))
+            )}
           </div>
-
         </div>
 
         {/* Submissions */}
-
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-primary/10">
-
           <h2 className="font-semibold mb-6 text-primary">
             Latest Submissions
           </h2>
 
           <div className="space-y-4">
-
-            {recentSubmissions.map((item, i) => (
-              <SubmissionRow
-                key={i}
-                exam={item.exam}
-                status={item.status}
-              />
-            ))}
-
+            {recentSubmissions.length === 0 ? (
+              <p className="text-sm text-primary/40 text-center py-6">
+                No submissions yet
+              </p>
+            ) : (
+              recentSubmissions.map((item, i) => (
+                <SubmissionRow
+                  key={i}
+                  exam={item.exam}
+                  status={item.status}
+                />
+              ))
+            )}
           </div>
-
         </div>
 
       </div>

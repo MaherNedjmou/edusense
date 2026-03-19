@@ -1,23 +1,59 @@
 "use client";
+
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { CLASSES_DATA } from "@/data/classesData";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import SectionsTab from "@/components/Sections/SectionsTab";
+import api from "@/lib/api";
+
+type ClassData = {
+  _id: string;
+  name: string;
+  subject: string;
+  description: string;
+  code: string;
+  color: string;
+};
 
 export default function StudentClassDetailPage() {
   const { class_id } = useParams() as { class_id: string };
 
-  const cls = CLASSES_DATA[class_id];
+  const [cls, setCls] = useState<ClassData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  if (!cls) {
+  useEffect(() => {
+    const fetchClass = async () => {
+      try {
+        const res = await api.get<any>(`/classes/${class_id}`);
+        if (res.success) {
+          setCls(res.data);
+        } else {
+          setError("Class not found.");
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to load class.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (class_id) fetchClass();
+  }, [class_id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <Loader2 size={32} className="animate-spin text-primary/30" />
+      </div>
+    );
+  }
+
+  if (error || !cls) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4 bg-background">
-        <p className="text-lg font-bold text-primary">Class not found.</p>
-        <p className="text-sm text-primary/40">
-          ID received:{" "}
-          <code className="bg-primary/10 px-2 py-0.5 rounded">{class_id}</code>
-        </p>
+        <p className="text-lg font-bold text-primary">{error || "Class not found."}</p>
         <Link
           href="/student/classes"
           className="text-sm font-bold text-secondary hover:underline flex items-center gap-1"
@@ -45,7 +81,7 @@ export default function StudentClassDetailPage() {
       </div>
 
       {/* Banner */}
-      <div className={`bg-linear-to-br ${cls.color} relative overflow-hidden h-44`}>
+      <div className={`bg-gradient-to-br ${cls.color || "from-primary to-primary/80"} relative overflow-hidden h-44`}>
         <div
           className="absolute inset-0 opacity-10"
           style={{
@@ -61,13 +97,16 @@ export default function StudentClassDetailPage() {
 
       {/* Tab content */}
       <div className="max-w-6xl mx-auto px-6 py-6">
-        <SectionsTab cls={{
-          id: class_id,
-          name: cls.name,
-          description: cls.description,
-          code: cls.code,
-          studentCount: cls.studentCount
-        }} classId={class_id} />
+        <SectionsTab
+          cls={{
+            id: cls._id,
+            name: cls.name,
+            description: cls.description || "",
+            code: cls.code,
+            studentCount: 0,
+          }}
+          classId={cls._id}
+        />
       </div>
     </div>
   );

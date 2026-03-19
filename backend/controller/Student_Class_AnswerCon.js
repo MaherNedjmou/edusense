@@ -96,11 +96,156 @@ const uploadStudentAnswer = async (req, res) => {
     }
 };
 
+// GET MY ANSWERS FOR A CLASS (with graded flag)
+const getMyAnswersForClass = async (req, res) => {
+    try {
+        const StudentClass = require("../model/Student_Class");
+        const Student = require("../model/Student");
+        const Feedback = require("../model/Feedback");
+
+        const student = await Student.findOne({ user: req.user._id });
+        if (!student) return res.status(404).json({ error: "Student profile not found" });
+
+        const sc = await StudentClass.findOne({ student: student._id, class: req.params.classId });
+        if (!sc) return res.status(404).json({ error: "Enrollment not found" });
+
+        const answers = await StudentClassAnswer.find({ studentClass: sc._id })
+            .populate("exam");
+
+        const answerIds = answers.map(a => a._id);
+        const feedbacks = await Feedback.find({ studentClassAnswer: { $in: answerIds } });
+
+        const result = answers.map(ans => {
+            const isGraded = feedbacks.some(fb =>
+                fb.studentClassAnswer?.toString() === ans._id.toString()
+            );
+            return {
+                _id: ans._id,
+                examId: ans.exam?._id?.toString() || ans.exam?.toString(),
+                answers: ans.answers || [],
+                submittedAt: ans.submittedAt,
+                isGraded
+            };
+        });
+
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// DELETE MY ANSWER (only if not graded; also removes Cloudinary files)
+const deleteMyAnswer = async (req, res) => {
+    try {
+        const Feedback = require("../model/Feedback");
+        const Student = require("../model/Student");
+        const StudentClass = require("../model/Student_Class");
+
+        const student = await Student.findOne({ user: req.user._id });
+        if (!student) return res.status(404).json({ error: "Student profile not found" });
+
+        const answer = await StudentClassAnswer.findById(req.params.id).populate("studentClass");
+        if (!answer) return res.status(404).json({ error: "Answer not found" });
+
+        // Verify ownership
+        const sc = await StudentClass.findOne({ _id: answer.studentClass, student: student._id });
+        if (!sc) return res.status(403).json({ error: "Not authorized to delete this answer" });
+
+        // Check if already graded
+        const feedback = await Feedback.findOne({ studentClassAnswer: answer._id });
+        if (feedback) {
+            return res.status(403).json({ error: "Cannot delete a graded submission." });
+        }
+
+        // Delete Cloudinary files
+        for (const file of (answer.answers || [])) {
+            if (file.public_id) {
+                await cloudinary.uploader.destroy(file.public_id).catch(() => {});
+            }
+        }
+
+        await StudentClassAnswer.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: "Answer deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// GET ALL ANSWERS FOR A CLASS (TEACHER VIEW)
+const getAnswersForTeacher = async (req, res) => {
+    try {
+        const StudentClass = require("../model/Student_Class");
+        const Student = require("../model/Student");
+        const User = require("../model/User");
+        const Feedback = require("../model/Feedback");
+
+        const { classId } = req.params;
+
+        // Find all enrollments for this class
+        const enrollments = await StudentClass.find({ class: classId }).populate('student');
+        const enrollmentIds = enrollments.map(e => e._id);
+
+        // Find all answers for these enrollments
+        const answers = await StudentClassAnswer.find({ studentClass: { $in: enrollmentIds } })
+            .populate("exam")
+            .populate({
+                path: 'studentClass',
+                populate: {
+                    path: 'student',
+                    populate: {
+                        path: 'user'
+                    }
+                }
+            });
+
+        const answerIds = answers.map(a => a._id);
+        const feedbacks = await Feedback.find({ studentClassAnswer: { $in: answerIds } });
+
+        const result = answers.map(ans => {
+            const isGraded = feedbacks.some(fb =>
+                fb.studentClassAnswer?.toString() === ans._id.toString()
+            );
+            
+            // Extract student info gracefully
+            let studentName = "Unknown Student";
+            let studentEmail = "";
+            let avatar = "";
+            if (ans.studentClass && ans.studentClass.student && ans.studentClass.student.user) {
+                const u = ans.studentClass.student.user;
+                studentName = `${u.firstName || ''} ${u.lastName || ''}`.trim();
+                studentEmail = u.email;
+                avatar = u.firstName ? `${u.firstName[0]}${u.lastName ? u.lastName[0] : ''}` : '?';
+            }
+
+            return {
+                _id: ans._id,
+                examId: ans.exam?._id?.toString() || ans.exam?.toString(),
+                answers: ans.answers || [],
+                submittedAt: ans.submittedAt,
+                isGraded,
+                student: {
+                    name: studentName,
+                    email: studentEmail,
+                    avatar: avatar
+                }
+            };
+        });
+
+        res.json({ success: true, data: result });
+    } catch (err) {
+        console.error("Error in getAnswersForTeacher:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 module.exports = {
     createAnswer,
     getAnswers,
     getAnswerById,
     updateAnswer,
     deleteAnswer,
-    uploadStudentAnswer
+    uploadStudentAnswer,
+    getMyAnswersForClass,
+    deleteMyAnswer,
+    getAnswersForTeacher
 };

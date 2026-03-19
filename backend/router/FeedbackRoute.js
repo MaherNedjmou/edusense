@@ -15,4 +15,6 @@ router.delete("/:id", feedbackController.deleteFeedback);
 
 router.post("/generate", feedbackController.generateFeedback);
 
+router.post("/bulk-analyze", feedbackController.bulkAnalyzeSection);
+
 module.exports = router;

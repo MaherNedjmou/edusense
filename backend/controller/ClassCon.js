@@ -1,5 +1,12 @@
 const Class = require("../model/Class");
 const Teacher = require("../model/Teacher");
+const StudentClass = require("../model/Student_Class");
+const Exam = require("../model/Exam");
+const crypto = require("crypto");
+
+// Helper: generate a unique 6-char alphanumeric class code
+const generateClassCode = () =>
+  crypto.randomBytes(3).toString("hex").toUpperCase(); // e.g. "A3F9C2"
 
 // CREATE CLASS
 const createClass = async (req, res) => {
@@ -16,13 +23,23 @@ const createClass = async (req, res) => {
       return res.status(404).json({ success: false, message: "Teacher profile not found" });
     }
 
-    const newClass = await Class.create({ ...req.body, teacher: teacher._id });
+    // Auto-generate a unique code if not provided
+    let code = req.body.code;
+    if (!code) {
+      let attempts = 0;
+      do {
+        code = generateClassCode();
+        const existing = await Class.findOne({ code });
+        if (!existing) break;
+        attempts++;
+      } while (attempts < 10);
+    }
+
+    const newClass = await Class.create({ ...req.body, code, teacher: teacher._id });
     res.status(201).json({
       success: true,
       data: newClass
     });
-
-
 
   } catch (error) {
     res.status(400).json({
@@ -40,12 +57,18 @@ const getClassesByTeacher = async (req, res) => {
       return res.status(404).json({ success: false, message: "Teacher profile not found" });
     }
 
-    const classes = await Class.find({ teacher: teacher._id }).sort({ createdAt: -1 });
+    const classes = await Class.find({ teacher: teacher._id }).sort({ createdAt: -1 }).lean();
+
+    const enhancedClasses = await Promise.all(classes.map(async (cls) => {
+      const studentCount = await StudentClass.countDocuments({ class: cls._id });
+      const sectionCount = await Exam.countDocuments({ class: cls._id });
+      return { ...cls, studentCount, sectionCount };
+    }));
 
     res.status(200).json({
       success: true,
-      count: classes.length,
-      data: classes
+      count: enhancedClasses.length,
+      data: enhancedClasses
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -58,12 +81,18 @@ const getClassesByTeacher = async (req, res) => {
 const getClasses = async (req, res) => {
   try {
 
-    const classes = await Class.find().populate("teacher");
+    const classes = await Class.find().populate("teacher").lean();
+
+    const enhancedClasses = await Promise.all(classes.map(async (cls) => {
+      const studentCount = await StudentClass.countDocuments({ class: cls._id });
+      const sectionCount = await Exam.countDocuments({ class: cls._id });
+      return { ...cls, studentCount, sectionCount };
+    }));
 
     res.status(200).json({
       success: true,
-      count: classes.length,
-      data: classes
+      count: enhancedClasses.length,
+      data: enhancedClasses
     });
 
   } catch (error) {
@@ -84,7 +113,8 @@ const getClassById = async (req, res) => {
 
     const classItem = await Class
       .findById(req.params.id)
-      .populate("teacher");
+      .populate("teacher")
+      .lean();
 
     if (!classItem) {
       return res.status(404).json({
@@ -93,9 +123,12 @@ const getClassById = async (req, res) => {
       });
     }
 
+    const studentCount = await StudentClass.countDocuments({ class: classItem._id });
+    const sectionCount = await Exam.countDocuments({ class: classItem._id });
+
     res.status(200).json({
       success: true,
-      data: classItem
+      data: { ...classItem, studentCount, sectionCount }
     });
 
   } catch (error) {

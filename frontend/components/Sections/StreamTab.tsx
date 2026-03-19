@@ -1,25 +1,41 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import {
   Plus, Upload, FileText, Brain, X,
   Clipboard, Users, BookOpen,
-  CheckCircle, GraduationCap, Sparkles, Crown, AlertTriangle,
+  CheckCircle, GraduationCap, Sparkles, Crown, AlertTriangle, User
 } from "lucide-react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import Button from "@/components/UI/Button";
-import { CLASS_SECTIONS_DATA } from "@/data/mockData";
 import api from "@/lib/api";
 
 
+interface ImageFile {
+  url: string;
+  public_id: string;
+}
+
 interface Section {
-  id: any;
+  id: string;
   title: string;
   description: string;
   classId: string;
-  examImages?: { url: string; public_id: string }[];
-  solutionImages?: { url: string; public_id: string }[];
+  examImages?: ImageFile[];
+  solutionImages?: ImageFile[];
+}
+
+interface StudentAnswer {
+  _id: string;
+  examId: string;
+  answers: ImageFile[];
+  submittedAt: string;
+  isGraded: boolean;
+  student: {
+    name: string;
+    email: string;
+    avatar: string;
+  };
 }
 
 interface StreamTabProps {
@@ -36,15 +52,18 @@ interface StreamTabProps {
 
 export default function StreamTab({ cls, classId }: StreamTabProps) {
   const [sections, setSections] = useState<Section[]>([]);
-  const [expandedIds, setExpandedIds] = useState<any[]>([]);
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  
+  // All student answers for this class
+  const [studentAnswers, setStudentAnswers] = useState<StudentAnswer[]>([]);
 
   const [showAddSection, setShowAddSection] = useState(false);
   const [sectionTitle, setSectionTitle] = useState("");
   const [sectionDesc, setSectionDesc] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const [analyzedSections, setAnalyzedSections] = useState<any[]>([]);
-  const [isBulkAnalyzing, setIsBulkAnalyzing] = useState<any | null>(null);
+  const [analyzedSections, setAnalyzedSections] = useState<string[]>([]);
+  const [isBulkAnalyzing, setIsBulkAnalyzing] = useState<string | null>(null);
 
   const copyCode = () => {
     navigator.clipboard.writeText(cls._id);
@@ -84,16 +103,16 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
     }
   };
 
-  const removeSection = (id: any) =>
+  const removeSection = (id: string) =>
     setSections((prev) => prev.filter((s) => s.id !== id));
 
-  const toggleExpand = (id: any) =>
+  const toggleExpand = (id: string) =>
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
 
   /** Append multiple files to examImages or solutionImages after uploading to Cloudinary */
-  const handleUpload = async (id: any, files: FileList | null, type: "exam" | "solution") => {
+  const handleUpload = async (id: string, files: FileList | null, type: "exam" | "solution") => {
     if (!files?.length) return;
 
     const formData = new FormData();
@@ -136,7 +155,7 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
   };
 
   /** Remove a single file by public_id */
-  const removeFile = async (sectionId: any, public_id: string, type: "exam" | "solution") => {
+  const removeFile = async (sectionId: string, public_id: string, type: "exam" | "solution") => {
     try {
       // 1. Delete from Cloudinary and DB
       const endpoint = type === "solution" ? "solution-image" : "exam-image";
@@ -153,14 +172,29 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
     }
   };
 
-  const startBulkAnalysis = (id: any) => {
+  const startBulkAnalysis = async (id: string) => {
     const sec = sections.find((s) => s.id === id);
     if (!sec?.solutionImages?.length) return;
+
+    // Get all ungraded submissions for this section
+    const sectionAnswers = studentAnswers.filter(a => a.examId === id && !a.isGraded);
+    if (!sectionAnswers.length) return;
+
+    const submissionIds = sectionAnswers.map(a => a._id);
+
     setIsBulkAnalyzing(id);
-    setTimeout(() => {
-      setIsBulkAnalyzing(null);
+    
+    try {
+      await api.post("/feedbacks/bulk-analyze", { submissionIds });
+      
       setAnalyzedSections((prev) => [...prev, id]);
-    }, 2500);
+      // Locally mark them as graded so they disappear
+      setStudentAnswers((prev) => prev.map(a => a.examId === id ? { ...a, isGraded: true } : a));
+    } catch (err) {
+      console.error("Failed to bulk analyze:", err);
+    } finally {
+      setIsBulkAnalyzing(null);
+    }
   };
 
   useEffect(() => {
@@ -189,6 +223,23 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
     };
     fetchExams();
   }, [cls._id]);
+
+  useEffect(() => {
+    const fetchStudentAnswers = async () => {
+      try {
+        const res = await api.get<any>(`/student-class-answers/teacher/${cls._id}`);
+        if (res.success && res.data) {
+          setStudentAnswers(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch student answers", err);
+      }
+    };
+    fetchStudentAnswers();
+  }, [cls._id]);
+
+  // Aggregate un-graded submissions for the notification banner
+  const ungroupedUnGraded = studentAnswers.filter(a => !a.isGraded).length;
 
   return (
     <div className="grid lg:grid-cols-4 gap-6">
@@ -240,6 +291,19 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
           </div>
         </div>
 
+        {/* Global Notifications for new submissions */}
+        {ungroupedUnGraded > 0 && (
+          <div className="bg-secondary/10 border-l-4 border-secondary p-4 rounded-xl flex items-start gap-3">
+            <AlertTriangle className="text-secondary shrink-0 mt-0.5" size={18} />
+            <div>
+              <h4 className="text-sm font-bold text-primary">Submissions Ahead!</h4>
+              <p className="text-xs text-primary/70 mt-1">
+                You have {ungroupedUnGraded} un-analyzed student paper{ungroupedUnGraded === 1 ? "" : "s"} across all sections waiting for AI analysis.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Sections header */}
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-widest">Sections</p>
@@ -267,6 +331,10 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
           const modelFiles = sec.solutionImages ?? [];
           const homeworkFiles = sec.examImages ?? [];
 
+          // Filter student submissions intended for this specific exam section
+          const sectionAnswers = studentAnswers.filter(a => a.examId === sec.id && !a.isGraded);
+          const unGradedAnswersCount = sectionAnswers.length;
+
           return (
             <div key={sec.id} className="bg-white border border-primary/10 rounded-2xl shadow-sm overflow-hidden">
               <div
@@ -282,6 +350,11 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
                     {isAnalyzed && (
                       <span className="text-[9px] font-black uppercase text-secondary bg-secondary/10 px-1.5 py-0.5 rounded border border-secondary/10 tracking-widest">
                         Analyzed
+                      </span>
+                    )}
+                    {unGradedAnswersCount > 0 && !isAnalyzed && (
+                      <span className="text-[9px] font-black uppercase text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20 tracking-widest">
+                        {unGradedAnswersCount} New Submissions 
                       </span>
                     )}
                   </div>
@@ -316,7 +389,7 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
                           </div>
                           <div>
                             <h4 className="text-sm font-black text-primary">Class Performance Summary</h4>
-                            <p className="text-[10px] text-primary/40 font-bold uppercase tracking-tight">AI Generated Insights for {cls.studentCount} Students</p>
+                            <p className="text-[10px] text-primary/40 font-bold uppercase tracking-tight">AI Generated Insights for {sectionAnswers.length} Submissions</p>
                           </div>
                         </div>
                         <div className="text-right">
@@ -347,12 +420,8 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
                     </div>
                   )}
 
-                  <div className="border border-dashed border-primary/15 rounded-xl p-4 text-center">
-                    <p className="text-xs text-primary/40">{isAnalyzed ? "All student papers analyzed" : "No student submissions yet"}</p>
-                  </div>
-
                   {/* Files grid */}
-                  <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="grid sm:grid-cols-2 gap-6">
 
                     {/* ── Model Solution ── */}
                     <div>
@@ -469,18 +538,56 @@ export default function StreamTab({ cls, classId }: StreamTabProps) {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 pt-2 border-t border-primary/8">
+                  {/* ── Student Submissions Feed ── */}
+                  {sectionAnswers.length > 0 && (
+                    <div className="border-t border-primary/10 pt-5 space-y-4">
+                      <p className="text-xs font-bold text-primary/40 uppercase tracking-widest">
+                        Student Submissions
+                      </p>
+                      
+                      <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                        {sectionAnswers.map(ans => (
+                          <div key={ans._id} className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-secondary/20 border-2 border-white flex items-center justify-center text-sm font-bold text-secondary">
+                                {ans.student.avatar}
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-primary">{ans.student.name || "Unknown Student"}</p>
+                                <p className="text-xs text-primary/50">
+                                  {ans.answers.length} file{ans.answers.length === 1 ? "" : "s"} attached · {new Date(ans.submittedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div>
+                              {ans.isGraded ? (
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-secondary bg-secondary/10 border border-secondary/20 px-2 py-1 rounded-lg">
+                                  Evaluated
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-accent bg-accent/10 border border-accent/20 px-2 py-1 rounded-lg">
+                                  Pending AI Review
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3 pt-5 border-t border-primary/8">
                     <Button
                       onClick={() => startBulkAnalysis(sec.id)}
-                      disabled={!modelFiles.length || isCurrentAnalyzing || isAnalyzed}
-                      className={`flex items-center gap-2 bg-secondary text-xs font-bold px-6 py-3 rounded-xl hover:opacity-90 transition-all shadow-md shadow-secondary/30 ${(!modelFiles.length || isCurrentAnalyzing || isAnalyzed) ? "opacity-40 cursor-not-allowed grayscale" : "hover:scale-[1.02]"}`}
+                      disabled={!modelFiles.length || isCurrentAnalyzing || isAnalyzed || sectionAnswers.length === 0}
+                      className={`flex items-center gap-2 bg-secondary text-xs font-bold px-6 py-3 rounded-xl hover:opacity-90 transition-all shadow-md shadow-secondary/30 ${(!modelFiles.length || isCurrentAnalyzing || isAnalyzed || sectionAnswers.length === 0) ? "opacity-40 cursor-not-allowed grayscale" : "hover:scale-[1.02]"}`}
                     >
                       {isCurrentAnalyzing ? (
                         <><Brain size={16} className="animate-spin" /> Analyzing Class...</>
                       ) : isAnalyzed ? (
                         <><CheckCircle size={16} /> Analysis Ready</>
                       ) : (
-                        <><Brain size={16} /> Analyze Whole Class</>
+                        <><Brain size={16} /> Analyze {sectionAnswers.length} Submission{sectionAnswers.length === 1 ? "" : "s"}</>
                       )}
                     </Button>
                     {!isAnalyzed && (

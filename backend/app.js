@@ -31,7 +31,6 @@ const reportRoutes = require("./router/reportRouter");
 
 // ########################### JUST FOR TESTING ###########################
 app.use("/cloudinary", cloudinaryController);
-app.use("/student-class-answers", studentClassAnswerRoutes);
 // ########################################################################
 
 // Auth routes
@@ -48,7 +47,7 @@ app.use("/students", studentRoutes);
 app.use("/classes", classRoutes);
 app.use("/subscribe-plans", subscribeRoutes);
 app.use("/student-classes", studentClassRoutes);
-// app.use("/student-class-answers", studentClassAnswerRoutes);
+app.use("/student-class-answers", studentClassAnswerRoutes);
 app.use("/feedbacks", feedbackRoutes);
 app.use("/exams", examRoutes);
 app.use("/reports", reportRoutes);

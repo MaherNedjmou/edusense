@@ -62,7 +62,7 @@ export default function ClassCard({
               className="flex items-center gap-1.5 text-xs text-primary/50 hover:text-secondary transition-colors"
             >
               <Clipboard size={12} />
-              <span className="font-mono font-semibold">{code}</span>
+              <span className="font-mono font-semibold">{code?.slice(0, 3)}..</span>
               <span className="text-[10px]">{copied ? "✓ Copied" : "Copy"}</span>
             </button>
             <div className="flex items-center gap-1 text-xs text-primary/40">
