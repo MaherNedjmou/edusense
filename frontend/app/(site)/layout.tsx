@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Sono } from "next/font/google";
 import "@/app/globals.css";
+import Navbar from "@/components/landing/Navbar";
+import Footer from "@/components/landing/Footer";
 
 const sono = Sono({
   variable: "--font-sono",
@@ -22,7 +24,9 @@ export default function RootLayout({
       <body
         className={`${sono.variable} antialiased bg-background text-primary`}
       >
+        <Navbar />
         {children}
+        <Footer />
       </body>
     </html>
   );
