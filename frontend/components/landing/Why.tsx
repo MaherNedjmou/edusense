@@ -1,6 +1,6 @@
 import { Brain, ShieldCheck, Zap } from "lucide-react";
 import Image from "next/image";
-import why_pic from "@/public/images/why_pic.png";
+import about_pic from "@/public/images/about_pic.png";
 
 export default function WhyChooseUs() {
   return (
@@ -74,7 +74,7 @@ export default function WhyChooseUs() {
 
           <div className="relative z-10 w-full">
             <Image 
-              src={why_pic} 
+              src={about_pic} 
               alt="EduSense AI grading system visualization" 
               className="w-full h-full object-cover rounded-2xl"
             />

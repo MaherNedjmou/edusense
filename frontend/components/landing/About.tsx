@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Info } from "lucide-react";
 import Image from "next/image";
-import why_pic from "@/public/images/why_pic.png";
+import about_pic from "@/public/images/about_pic.png";
 
 const tabs = [
   {
@@ -43,7 +43,7 @@ export default function About() {
 
           <div className="relative z-10 w-full">
             <Image 
-              src={why_pic} 
+              src={about_pic} 
               alt="EduSense AI analyzing exam papers" 
               className="w-full h-full object-cover rounded-2xl"
             />

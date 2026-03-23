@@ -1,7 +1,7 @@
 "use client";
 
 import Button from "@/components/UI/Button";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, DollarSign } from "lucide-react";
 import Link from "next/link";
 
 const plans = [
@@ -48,16 +48,27 @@ export default function PricingPage() {
     <div className="w-full bg-background py-24">
       <div className="max-w-6xl mx-auto px-6">
 
-        {/* Header */}
-        <div className="text-center mb-16 space-y-4">
-          <h1 className="text-5xl font-semibold text-foreground">
-            Simple, Transparent Pricing
-          </h1>
-          <p className="text-foreground/70">
-            Choose the plan that fits your needs — from individual teachers to institutions.
-          </p>
-        </div>
+        <section className="px-6 text-center max-w-5xl mx-auto space-y-6">
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
+              < DollarSign className="w-5 h-5 text-white" />
+            </div>
+            <span className="uppercase text-sm tracking-wide text-foreground/70">
+              Pricing
+            </span>
+          </div>
 
+          {/* Header */}
+          <div className="text-center mb-16 space-y-4">
+            <h1 className="text-5xl font-semibold text-foreground">
+              Simple, Transparent Pricing
+            </h1>
+            <p className="text-foreground/70">
+              Choose the plan that fits your needs — from individual teachers to institutions.
+            </p>
+          </div>
+        </section>
+        
         {/* Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
           {plans.map((plan, i) => (
