@@ -119,21 +119,22 @@ const How = () => {
 
   return (
     <>
-      {/* Badge */}
-      <div className="flex items-center justify-center gap-3">
-        <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
-          <Settings className="w-5 h-5 text-white" />
+      {/* HEADER */}
+      <div className="text-center space-y-6 mb-16">
+        {/* Badge */}
+        <div className="flex items-center gap-2 justify-center">
+          <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
+            <Settings className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-foreground/70 font-medium tracking-wide uppercase text-sm">
+            How It Works
+          </span>
         </div>
-        <span className="text-foreground/70 font-medium tracking-wide uppercase text-sm">
-          How It Works
-        </span>
+        <h2 className="text-5xl font-semibold leading-tight text-foreground text-center">
+          How EduSense <br />
+          <span className="text-secondary">Works</span>
+        </h2>
       </div>
-
-      {/* Title */}
-      <h2 className="text-5xl font-semibold leading-tight text-foreground text-center">
-        How EduSense <br />
-        <span className="text-secondary">Works</span>
-      </h2>
 
       <section
         ref={sectionRef}

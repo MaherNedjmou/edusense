@@ -68,6 +68,7 @@ export default function ContactPage() {
 
             <Button
               type="submit"
+              className="w-full"
             >
               Send Message
             </Button>
