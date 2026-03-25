@@ -6,6 +6,8 @@ opencv-python
 matplotlib
 pillow
 python-multipart
+pyyaml
+opencv-python
     
 
 # fastapi==0.100.0
