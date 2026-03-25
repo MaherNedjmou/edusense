@@ -34,15 +34,14 @@ const Navbar = () => {
         className={`
           fixed z-50 flex items-center justify-between 
           px-4 py-2 rounded-3xl transition-all duration-500 
-          ${
-            scrolled
-              ? "w-11/12 md:w-9/12 mt-4 bg-background/80 backdrop-blur-xl border shadow-lg"
-              : "w-11/12 md:w-10/12 mt-1 bg-background shadow-none"
+          ${scrolled
+            ? "w-11/12 md:w-9/12 mt-4 bg-background/80 backdrop-blur-xl border shadow-lg"
+            : "w-11/12 md:w-10/12 mt-1 bg-background shadow-none"
           }
         `}
       >
         {/* Logo */}
-        <div 
+        <div
           className="flex items-center gap-2 hover:cursor-pointer"
           onClick={() => window.location.href = "/"}
         >
@@ -54,25 +53,25 @@ const Navbar = () => {
         {/* Desktop Menu items */}
         <ul className="hidden md:flex text-primary gap-8 text-foreground/80 font-medium">
           <Link
-            href="/" 
+            href="/"
             className="cursor-pointer hover:font-semibold transition"
           >
             Home
           </Link>
           <Link
-            href="/demo"  
+            href="/demo"
             className="cursor-pointer hover:font-semibold transition"
           >
             Demo
           </Link>
           <Link
-            href="/pricing" 
+            href="/pricing"
             className="cursor-pointer hover:font-semibold transition"
           >
             Pricing
           </Link>
           <Link
-            href="/contact" 
+            href="/contact"
             className="cursor-pointer hover:font-semibold transition"
           >
             Contact
@@ -81,25 +80,24 @@ const Navbar = () => {
 
         {/* Desktop CTA Buttons */}
         <div className="hidden md:flex gap-4">
+          <Link
+            href="/login"
+            onClick={() => setMobileMenuOpen(false)}
+          >
             <Button
               variant="outline"
             >
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Sign In
-              </Link>
+              Sign In
             </Button>
-            <Button
-            >
-              <Link
-                href="/signup"  
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Sign Up
-              </Link>
+          </Link>
+          <Link
+            href="/signup"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <Button>
+              Sign Up
             </Button>
+          </Link>
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -108,20 +106,17 @@ const Navbar = () => {
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >
-          <span 
-            className={`block w-6 h-0.5 bg-primary transition-all duration-300 ${
-              mobileMenuOpen ? 'rotate-45 translate-y-2' : ''
-            }`}
+          <span
+            className={`block w-6 h-0.5 bg-primary transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''
+              }`}
           />
-          <span 
-            className={`block w-6 h-0.5 bg-primary transition-all duration-300 ${
-              mobileMenuOpen ? 'opacity-0' : ''
-            }`}
+          <span
+            className={`block w-6 h-0.5 bg-primary transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''
+              }`}
           />
-          <span 
-            className={`block w-6 h-0.5 bg-primary transition-all duration-300 ${
-              mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
-            }`}
+          <span
+            className={`block w-6 h-0.5 bg-primary transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
+              }`}
           />
         </button>
       </nav>
@@ -147,19 +142,19 @@ const Navbar = () => {
           {/* Mobile Menu Items */}
           <ul className="flex flex-col text-primary gap-6 text-foreground/80 font-medium mb-8">
             <Link
-              href="/" 
+              href="/"
               className="cursor-pointer hover:font-semibold transition py-2 border-b"
             >
               Home
             </Link>
             <Link
-              href="/demo" 
+              href="/demo"
               className="cursor-pointer hover:font-semibold transition py-2 border-b"
             >
               Demo
             </Link>
             <Link
-              href="/pricing" 
+              href="/pricing"
               className="cursor-pointer hover:font-semibold transition py-2 border-b"
             >
               Pricing
@@ -186,7 +181,7 @@ const Navbar = () => {
             </Button>
             <Button>
               <Link
-                href="/signup"  
+                href="/signup"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sign Up

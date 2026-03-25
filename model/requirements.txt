@@ -1,0 +1,20 @@
+fastapi
+uvicorn
+onnxruntime
+numpy
+opencv-python
+matplotlib
+pillow
+python-multipart
+pyyaml
+opencv-python
+    
+
+# fastapi==0.100.0
+# uvicorn[standard]==0.23.0
+# onnxruntime==1.24.4
+# numpy==1.26.0
+# opencv-python==4.8.0.74
+# matplotlib==3.8.0
+# pillow==10.0.0
+# python-multipart==0.0.6
