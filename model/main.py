@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-import cv2
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from pydantic import BaseModel
 from typing import List
 
 # Import our Detectron2 model functions
 from models_func.detectron2 import load_model as load_detectron_model, run_inference as run_detectron_inference
-from models_func.paddelOCR import load_paddle_models, run_paddle_inference
+from models_func.paddleocr import load_paddle_models, run_paddle_inference
+from models_func.utils import decode_image
 
 # Initialize the models on startup
 load_detectron_model()
@@ -25,14 +24,6 @@ class DetectionResponse(BaseModel):
 
 class OCRResponse(BaseModel):
     texts: List[str]
-
-# HELPERS
-def decode_image(raw: bytes) -> np.ndarray:
-    arr = np.frombuffer(raw, dtype=np.uint8)
-    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-    if img is None:
-        raise ValueError("Could not decode the uploaded image.")
-    return img
 
 # FASTAPI
 app = FastAPI(title="Simple Layout Detection API", version="1.0.0")
@@ -64,3 +55,4 @@ async def ocr(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference error: {e}")
     return OCRResponse(texts=texts)
+
