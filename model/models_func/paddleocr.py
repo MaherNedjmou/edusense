@@ -1,4 +1,5 @@
 import io
+import os
 import onnxruntime as ort
 import numpy as np
 import cv2
@@ -15,7 +16,8 @@ num_classes = None
 
 DET_URL = "https://huggingface.co/Achouche/detectron2/resolve/main/PP-OCRv5_det_mobile.onnx"
 REC_URL = "https://huggingface.co/Achouche/detectron2/resolve/main/PP-OCRv5_rec_mobile.onnx"
-YML_PATH = r"C:\aboutMe\M2\START-UP\edusense\model\configs\inference.yml"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+YML_PATH = os.path.join(BASE_DIR, "configs", "inference.yml")
 
 def load_paddle_models() -> None:
     """Loads PaddleOCR detection and recognition models, along with the character dictionary."""
